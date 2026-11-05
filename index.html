@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Master | Trang chủ</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            min-height: 100vh;
+            color: #f8fafc;
+            background:
+                radial-gradient(circle at top left, #1e3a8a 0, transparent 35%),
+                radial-gradient(circle at bottom right, #4c1d95 0, transparent 35%),
+                #0f172a;
+        }
+
+        .container {
+            width: min(1100px, 92%);
+            margin: 0 auto;
+            padding: 60px 0;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .logo {
+            display: inline-block;
+            padding: 10px 18px;
+            margin-bottom: 20px;
+            border: 1px solid #475569;
+            border-radius: 30px;
+            color: #93c5fd;
+            background: rgba(30, 41, 59, 0.7);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        h1 {
+            font-size: clamp(32px, 5vw, 52px);
+            margin-bottom: 16px;
+            letter-spacing: -1px;
+        }
+
+        h1 span {
+            color: #60a5fa;
+        }
+
+        header p {
+            color: #cbd5e1;
+            font-size: 17px;
+            line-height: 1.6;
+        }
+
+        .section-title {
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .quiz-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 22px;
+        }
+
+        .quiz-card {
+            display: flex;
+            flex-direction: column;
+            min-height: 250px;
+            padding: 26px;
+            border: 1px solid #334155;
+            border-radius: 20px;
+            background: rgba(30, 41, 59, 0.78);
+            text-decoration: none;
+            color: #f8fafc;
+            transition: transform 0.2s, border-color 0.2s,
+                        background 0.2s, box-shadow 0.2s;
+        }
+
+        .quiz-card:hover {
+            transform: translateY(-6px);
+            border-color: #60a5fa;
+            background: rgba(30, 41, 59, 0.98);
+            box-shadow: 0 16px 35px rgba(0, 0, 0, 0.25);
+        }
+
+        .icon {
+            display: grid;
+            place-items: center;
+            width: 58px;
+            height: 58px;
+            margin-bottom: 22px;
+            border-radius: 16px;
+            background: #1d4ed8;
+            font-size: 28px;
+        }
+
+        .quiz-card:nth-child(2) .icon {
+            background: #7c3aed;
+        }
+
+        .quiz-card:nth-child(3) .icon {
+            background: #0f766e;
+        }
+
+        .quiz-card h2 {
+            margin-bottom: 10px;
+            font-size: 21px;
+        }
+
+        .quiz-card p {
+            color: #cbd5e1;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .open-link {
+            margin-top: auto;
+            padding-top: 24px;
+            color: #93c5fd;
+            font-weight: 600;
+        }
+
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        @media (max-width: 800px) {
+            .quiz-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .quiz-card {
+                min-height: 210px;
+            }
+
+            .container {
+                padding: 40px 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <header>
+            <div class="logo">QUIZ MASTER</div>
+
+            <h1>Hệ thống <span>trắc nghiệm</span></h1>
+
+            <p>
+                Chọn bộ đề bạn muốn làm và bắt đầu ôn tập.
+                <br>
+                Chúc bạn đạt kết quả tốt!
+            </p>
+        </header>
+
+        <h2 class="section-title">📚 Danh sách bộ đề</h2>
+
+        <section class="quiz-grid">
+            <!-- Bộ đề 1 -->
+            <a
+                class="quiz-card"
+                href="quiz_master_h_th_ng_qu_n_l_l_m_b_i_tr_c_nghi_m.html"
+            >
+                <div class="icon">📝</div>
+                <h2>Bộ đề 1</h2>
+                <p>
+                    Hệ thống quản lý làm bài trắc nghiệm.
+                    Nhấn để mở bộ đề và bắt đầu làm bài.
+                </p>
+                <div class="open-link">Bắt đầu làm bài →</div>
+            </a>
+
+            <!-- Bộ đề 2: sửa tên file tại href -->
+            <a class="quiz-card" href="bo-de-2.html">
+                <div class="icon">📖</div>
+                <h2>Bộ đề 2</h2>
+                <p>
+                    Mở bộ câu hỏi thứ hai để tiếp tục ôn tập
+                    và kiểm tra kiến thức.
+                </p>
+                <div class="open-link">Bắt đầu làm bài →</div>
+            </a>
+
+            <!-- Bộ đề 3: sửa tên file tại href -->
+            <a class="quiz-card" href="bo-de-3.html">
+                <div class="icon">🎯</div>
+                <h2>Bộ đề 3</h2>
+                <p>
+                    Mở bộ câu hỏi thứ ba để luyện tập
+                    và củng cố kiến thức.
+                </p>
+                <div class="open-link">Bắt đầu làm bài →</div>
+            </a>
+        </section>
+
+        <footer>
+            Quiz Master · Hệ thống ôn tập trắc nghiệm
+        </footer>
+    </main>
+</body>
+</html>
