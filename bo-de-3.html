@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>25 chuong 4.1 (đã có đáp án) - Quiz Master Offline</title>
+<style>
+  :root {
+    --bg-sidebar: #0f172a;
+    --bg-main: #f1f5f9;
+    --primary: #2563eb;
+    --success: #16a34a;
+    --success-bg: #dcfce7;
+    --danger: #dc2626;
+    --danger-bg: #fee2e2;
+    --warning: #d97706;
+    --warning-bg: #fef3c7;
+    --border: #e2e8f0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg-main); color: #1e293b; display: flex; height: 100vh; overflow: hidden; }
+  .sidebar { width: 270px; background: var(--bg-sidebar); color: #f8fafc; display: flex; flex-direction: column; justify-content: space-between; height: 100vh; flex-shrink: 0; transition: width 0.25s; }
+  .sidebar.collapsed { width: 74px; }
+  .sidebar.collapsed .hide-on-collapse { display: none !important; }
+  .sidebar-top { padding: 16px; border-bottom: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; }
+  .nav-panel { padding: 12px; background: #0b1324; border-top: 1px solid #1e293b; }
+  .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-height: 55vh; overflow-y: auto; margin-top: 8px; }
+  .sidebar.collapsed .nav-grid { grid-template-columns: repeat(2, 1fr); }
+  .nav-cell { height: 32px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; font-weight: 700; cursor: pointer; }
+  .nav-cell.correct { background: var(--success); color: #fff; border-color: var(--success); }
+  .nav-cell.wrong { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  .topbar { background: #fff; border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill { padding: 5px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; background: #f8fafc; border: 1px solid var(--border); }
+  .scroll-area { flex: 1; overflow-y: auto; padding: 24px; scroll-behavior: smooth; }
+  .container { max-width: 840px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; padding-bottom: 50px; }
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .q-num { display: inline-block; background: #eff6ff; color: var(--primary); font-weight: 700; font-size: 0.84rem; padding: 4px 10px; border-radius: 6px; margin-bottom: 10px; }
+  .q-text { font-weight: 600; line-height: 1.55; white-space: pre-line; margin-bottom: 14px; }
+  .opt { width: 100%; text-align: left; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 9px; background: #fff; cursor: pointer; display: flex; gap: 10px; margin-bottom: 8px; font-size: 0.94rem; }
+  .opt.correct { background: var(--success-bg); border-color: var(--success); }
+  .opt.wrong { background: var(--danger-bg); border-color: var(--danger); }
+  .opt.neutral { background: #eff6ff; border-color: var(--primary); }
+  .fb { margin-top: 10px; padding: 10px 12px; border-radius: 8px; font-weight: 600; font-size: 0.88rem; }
+  .fb.correct { background: var(--success-bg); color: #15803d; }
+  .fb.wrong { background: var(--danger-bg); color: #b91c1c; }
+  .fb.unconf { background: var(--warning-bg); color: #b45309; }
+</style>
+</head>
+<body>
+  <aside class="sidebar" id="sb">
+    <div class="sidebar-top">
+      <strong class="hide-on-collapse">25 chuong 4.1 (đã có đáp án)</strong>
+      <button onclick="document.getElementById('sb').classList.toggle('collapsed')" style="background:transparent;border:1px solid #334155;color:#fff;padding:6px 10px;border-radius:6px;cursor:pointer">☰</button>
+    </div>
+    <div class="nav-panel">
+      <div style="font-size:0.75rem;color:#94a3b8;font-weight:700">ĐIỀU HƯỚNG CÂU HỎI</div>
+      <div class="nav-grid" id="navGrid"></div>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <h2>25 chuong 4.1 (đã có đáp án)</h2>
+      <div class="stats" id="stats"></div>
+      <button onclick="resetQuiz()" style="padding:8px 14px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;font-weight:600;cursor:pointer">↻ Làm lại</button>
+    </header>
+    <div class="scroll-area"><div class="container" id="qContainer"></div></div>
+  </main>
+<script>
+  const QUIZ = {"name":"25 chuong 4.1 (đã có đáp án)","questions":[{"id":"q_1_0","number":1,"text":"Cơ sở kinh tế dựa trên chế độ công hữu về tư liệu sản xuất chủ yếu quyết định bản chất xã hội của nền dân chủ XHCN như thế nào?","options":{"A":"Khắc phục sự phân hóa giai cấp sâu sắc và sự thống trị về kinh tế của một nhóm nhỏ sở hữu tư bản.","B":"Đảm bảo triệt để sự bình đẳng tuyệt đối về thu nhập giữa tất cả thành viên trong xã hội.","C":"Buộc mọi cá nhân bàn giao toàn bộ tài sản cá nhân cho nhà nước quản lý tập trung.","D":"Xóa bỏ hoàn toàn thành phần kinh tế tư nhân và các hình thức sở hữu khác trong thời kỳ quá độ."},"correctAnswer":"A"},{"id":"q_2_1","number":2,"text":"Trong nền dân chủ XHCN ở Việt Nam, nhân dân thực hiện quyền lực thông qua hai hình thức cơ bản nào?","options":{"A":"Dân chủ chính thức và dân chủ phi chính thức","B":"Dân chủ kinh tế và dân chủ văn hóa","C":"Dân chủ trực tiếp và dân chủ gián tiếp (đại diện)","D":"Dân chủ tại chỗ và dân chủ từ xa"},"correctAnswer":"C"},{"id":"q_3_2","number":3,"text":"“Dân chủ” với tư cách giá trị nhân văn phổ quát của nhân loại khác căn bản gì so với “dân chủ” là một hình thái nhà nước?","options":{"A":"Giá trị dân chủ có tính vĩnh cửu và phát triển liên tục, còn hình thái nhà nước dân chủ mang tính lịch sử và có thời kỳ tiêu vong.","B":"Giá trị dân chủ phụ thuộc hoàn toàn vào ý chí của giai cấp thống trị, còn hình thái nhà nước dân chủ do nhân dân quyết định.","C":"Giá trị dân chủ không mang tính giai cấp, còn hình thái nhà nước dân chủ đại diện cho quyền lợi của mọi tầng lớp.","D":"Giá trị dân chủ chỉ tồn tại trong chế độ XHCN, còn hình thái nhà nước dân chủ tồn tại trong mọi xã hội có giai cấp."},"correctAnswer":"A"},{"id":"q_4_3","number":4,"text":"Điền từ: Trên phương diện chế độ xã hội và lĩnh vực chính trị, dân chủ là một (1)… hay hình thái nhà nước, là chính thể dân chủ hay (2)… dân chủ.","options":{"A":"(1) hình thức, (2) chế độ","B":"(1) hình thức, (2) kiểu","C":"(1) kiểu, (2) hình thức","D":"(1) chế độ, (2) hình thức"},"correctAnswer":"A"},{"id":"q_5_4","number":5,"text":"Xét về tư tưởng - văn hóa, nền dân chủ XHCN dựa trên nền tảng nào?","options":{"A":"Sự thống nhất về tư tưởng trên cơ sở loại bỏ những khác biệt về văn hóa trong xã hội.","B":"Kế thừa toàn bộ các giá trị văn hóa, tư tưởng đã hình thành trong xã hội trước.","C":"Sự đa dạng về tư tưởng và quyền tự do lựa chọn hệ giá trị của mỗi cá nhân.","D":"Chủ nghĩa Mác - Lênin, hệ tư tưởng của giai cấp công nhân, đồng thời kế thừa giá trị văn hóa dân tộc và nhân loại."},"correctAnswer":"D"},{"id":"q_6_5","number":6,"text":"Trong xã hội cộng sản nguyên thủy, hình thức dân chủ biểu hiện chủ yếu như thế nào?","options":{"A":"Quyền lực xã hội được thực hiện thông qua bộ máy nhà nước của cộng đồng.","B":"Các nhóm người thực hiện quyền quản lý dựa trên sự phân chia tài sản.","C":"Quyền lực tập trung vào người đứng đầu và truyền lại theo huyết thống.","D":"Các thành viên cộng đồng tham gia quyết định công việc chung theo tập quán."},"correctAnswer":"D"},{"id":"q_7_6","number":7,"text":"Vì sao thắng lợi của Cách mạng Tháng Tám 1945 và sự ra đời của nước VNDCCH có ý nghĩa đối với quá trình phát triển dân chủ ở Việt Nam?","options":{"A":"Xác lập ngay cơ sở kinh tế của CNXH, tạo điều kiện thực hiện đầy đủ quyền làm chủ trong sản xuất và phân phối.","B":"Chấm dứt mọi mâu thuẫn giai cấp, tạo điều kiện thực hiện ngay các nguyên tắc dân chủ XHCN.","C":"Mở ra cơ sở chính trị - pháp lý để nhân dân trở thành chủ thể của nhà nước mới và từng bước thực hiện quyền làm chủ.","D":"Hoàn thành việc xây dựng nền dân chủ XHCN trên cả ba phương diện chính trị, kinh tế, văn hóa - xã hội."},"correctAnswer":"C"},{"id":"q_8_7","number":8,"text":"Vì sao phát huy dân chủ XHCN ở Việt Nam hiện nay phải gắn với hoàn thiện Nhà nước pháp quyền XHCN?","options":{"A":"Nhà nước pháp quyền tạo cơ sở pháp lý để tổ chức quyền lực, bảo vệ quyền công dân, kiểm soát việc thực thi quyền lực và bảo đảm quyền làm chủ của nhân dân.","B":"Hoàn thiện Nhà nước pháp quyền chủ yếu nhằm mở rộng thẩm quyền của cơ quan công quyền, tăng khả năng điều hành xã hội.","C":"Nhà nước pháp quyền giúp tập trung quyền lực vào cơ quan hành chính, nâng cao hiệu quả quản lý và hạn chế các hình thức tham gia thiếu thống nhất.","D":"Nhà nước pháp quyền chủ yếu bảo đảm tính ổn định của hệ thống chính trị, còn quyền làm chủ của nhân dân phụ thuộc vào các tổ chức xã hội."},"correctAnswer":"A"},{"id":"q_9_8","number":9,"text":"Vì sao sự phát triển của dân chủ trong lịch sử không đồng nghĩa với việc quyền dân chủ được mở rộng giống nhau cho mọi giai cấp trong mọi chế độ?","options":{"A":"Quyền dân chủ chủ yếu phụ thuộc vào trình độ phát triển của pháp luật, còn cơ cấu giai cấp ít ảnh hưởng đến cách thực hiện quyền lực.","B":"Sự mở rộng quyền dân chủ phụ thuộc vào mức độ hoàn thiện của các cơ quan đại diện, không phụ thuộc trực tiếp vào cơ sở kinh tế.","C":"Mỗi nền dân chủ gắn với điều kiện lịch sử, cơ sở kinh tế và bản chất giai cấp nhất định, nên phạm vi quyền lực và quyền làm chủ được thực hiện khác nhau.","D":"Các nền dân chủ có hình thức tổ chức khác nhau nhưng đều hướng đến bảo đảm quyền chính trị bình đẳng cho mọi thành viên xã hội."},"correctAnswer":"C"},{"id":"q_10_9","number":10,"text":"Theo quan điểm của Đảng Cộng sản Việt Nam, bản chất chính trị của nền dân chủ XHCN ở Việt Nam thể hiện ở nội dung nào?","options":{"A":"Quyền tham gia quản lý xã hội của nhân dân được thực hiện chủ yếu qua các hoạt động bầu cử.","B":"Quyền lực nhà nước được tổ chức theo nguyên tắc phân chia quyền lực giữa các đảng phái.","C":"Quyền lực nhà nước được thực hiện chủ yếu qua các tổ chức xã hội độc lập với hệ thống chính trị.","D":"Quyền làm chủ của nhân dân được thực hiện thông qua hệ thống chính trị do Đảng Cộng sản Việt Nam lãnh đạo."},"correctAnswer":"D"},{"id":"q_11_10","number":11,"text":"Điểm khác biệt cơ bản giữa dân chủ tư sản và dân chủ XHCN theo chủ nghĩa Mác - Lênin được lý giải chủ yếu từ đâu?","options":{"A":"Mức độ phát triển của hệ thống pháp luật và khả năng kiểm soát quyền lực của các thiết chế nhà nước.","B":"Trình độ phát triển văn hóa và khả năng tham gia hoạt động xã hội của các tầng lớp dân cư.","C":"Cơ sở kinh tế, bản chất giai cấp và chủ thể thực hiện quyền lực trong mỗi nền dân chủ.","D":"Phạm vi tham gia bầu cử và cách thức tổ chức các cơ quan đại diện trong từng chế độ chính trị."},"correctAnswer":"C"},{"id":"q_12_11","number":12,"text":"Phương châm “dân biết, dân bàn, dân làm, dân kiểm tra, dân giám sát, dân thụ hưởng” nhằm hướng đến mục tiêu nào?","options":{"A":"Tăng cường vai trò điều hành của cơ quan nhà nước, đồng thời tạo điều kiện để người dân nắm bắt thông tin về hoạt động quản lý.","B":"Nâng cao trách nhiệm của các tổ chức đại diện, đồng thời tạo cơ chế để người dân phản ánh nguyện vọng sau khi chính sách được ban hành.","C":"Mở rộng sự tham gia của người dân ở một số khâu thực hiện chính sách, đồng thời bảo đảm cơ quan nhà nước giữ quyền quyết định cuối cùng.","D":"Phát huy quyền làm chủ của nhân dân, tạo điều kiện để nhân dân tham gia xây dựng, thực hiện và giám sát các công việc chung."},"correctAnswer":"D"},{"id":"q_13_12","number":13,"text":"Vì sao chế độ công hữu về tư liệu sản xuất chủ yếu được xem là cơ sở kinh tế của dân chủ XHCN theo lý luận Mác - Lênin?","options":{"A":"Làm cho mọi tư liệu sản xuất thuộc sở hữu nhà nước, qua đó loại bỏ khác biệt về thu nhập và điều kiện sống giữa các thành viên xã hội.","B":"Tạo cơ sở để hướng các tư liệu sản xuất chủ yếu vào mục tiêu phát triển xã hội, gắn với lợi ích của người lao động và sự phát triển lực lượng sản xuất.","C":"Bảo đảm mọi thành viên xã hội có quyền sử dụng ngang nhau đối với toàn bộ tư liệu sản xuất, không phụ thuộc vị trí lao động.","D":"Cho phép nhà nước quyết định toàn bộ hoạt động sản xuất, đồng thời thay thế quan hệ thị trường bằng cơ chế phân phối thống nhất."},"correctAnswer":"B"},{"id":"q_14_13","number":14,"text":"Vì sao xây dựng dân chủ XHCN ở Việt Nam gắn liền với xây dựng chủ nghĩa xã hội?","options":{"A":"Xây dựng CNXH chủ yếu hoàn thiện cơ sở kinh tế, còn phát triển dân chủ là nhiệm vụ riêng của hệ thống chính trị.","B":"Phát triển dân chủ là điều kiện chính trị ban đầu, sau đó có thể tách khỏi quá trình xây dựng quan hệ sản xuất và thiết chế xã hội mới.","C":"Xây dựng CNXH tạo cơ sở kinh tế, chính trị, văn hóa cho việc mở rộng quyền làm chủ của nhân dân, đồng thời dân chủ thúc đẩy xây dựng xã hội mới.","D":"Xây dựng CNXH đòi hỏi hoàn thiện hệ thống quản lý nhà nước trước, sau đó mới mở rộng các hình thức tham gia của nhân dân."},"correctAnswer":"C"},{"id":"q_15_14","number":15,"text":"Vì sao dân chủ XHCN được xác định có bản chất tư tưởng - văn hóa - xã hội gắn với chủ nghĩa Mác - Lênin và việc tiếp thu tinh hoa văn hóa nhân loại?","options":{"A":"Coi các giá trị văn hóa là yếu tố độc lập với cơ sở kinh tế và chính trị, nên việc tiếp thu văn hóa không chịu tác động của định hướng xã hội.","B":"Lấy chủ nghĩa Mác - Lênin làm nền tảng tư tưởng, đồng thời kế thừa giá trị văn hóa dân tộc và tiếp thu thành tựu tiến bộ của nhân loại.","C":"Thống nhất các giá trị tư tưởng của mọi giai cấp thành một hệ tư tưởng chung, qua đó loại bỏ sự khác biệt về quan điểm trong xã hội.","D":"Lấy văn hóa truyền thống làm nền tảng duy nhất, còn các giá trị tư tưởng bên ngoài chỉ được tiếp nhận khi không làm thay đổi bản sắc dân tộc."},"correctAnswer":"B"},{"id":"q_16_15","number":16,"text":"Chế độ dân chủ XHCN ở Việt Nam chính thức được xác lập sau sự kiện lịch sử nào?","options":{"A":"Đảng Cộng sản Việt Nam thành lập năm 1930","B":"Đại thắng mùa Xuân năm 1975","C":"Cách mạng Tháng Tám năm 1945","D":"Chiến dịch Điện Biên Phủ năm 1954"},"correctAnswer":"B"},{"id":"q_17_16","number":17,"text":"Trên phương diện chế độ xã hội và lĩnh vực chính trị, dân chủ được hiểu như thế nào?","options":{"A":"Một phương thức tổ chức đời sống xã hội, trong đó quyền tự do cá nhân được bảo đảm thông qua các quy tắc chung.","B":"Một cơ chế phân phối lợi ích xã hội, trong đó các nhóm dân cư được tham gia xác định những nhu cầu chung.","C":"Một nguyên tắc quản lý xã hội, trong đó quyền tham gia của nhân dân được kết hợp với yêu cầu thống nhất trong điều hành.","D":"Một hình thức nhà nước hay hình thái nhà nước, gắn với cách thức tổ chức và thực hiện quyền lực chính trị."},"correctAnswer":"D"},{"id":"q_18_17","number":18,"text":"Vì sao thắng lợi của Cách mạng Tháng Tám 1945 có ý nghĩa quan trọng đối với sự ra đời của nền dân chủ ở Việt Nam?","options":{"A":"Đã thiết lập đầy đủ các thiết chế dân chủ XHCN, bảo đảm quyền làm chủ của nhân dân trên mọi lĩnh vực.","B":"Đã hoàn thành nhiệm vụ xây dựng cơ sở kinh tế của CNXH, tạo điều kiện thực hiện quyền làm chủ của nhân dân.","C":"Đã lật đổ chế độ thuộc địa, phong kiến, lập nên nhà nước VNDCCH, mở ra bước phát triển mới của nền dân chủ Việt Nam.","D":"Đã mở rộng quyền tham gia chính trị trong khuôn khổ nhà nước cũ, từng bước chuyển sang chế độ dân chủ mới."},"correctAnswer":"C"},{"id":"q_19_18","number":19,"text":"Nền dân chủ XHCN ở Việt Nam bắt đầu được xây dựng trên cơ sở sự kiện lịch sử nào?","options":{"A":"Thắng lợi kháng chiến chống Mỹ năm 1975, hoàn thành giải phóng miền Nam, thống nhất đất nước.","B":"Thắng lợi của Cách mạng Tháng Tám 1945 và sự ra đời của nước VNDCCH.","C":"Thắng lợi kháng chiến chống thực dân Pháp năm 1954, mở ra điều kiện xây dựng CNXH ở miền Bắc.","D":"Sự ra đời của Đảng Cộng sản Việt Nam năm 1930, đánh dấu sự hình thành lực lượng lãnh đạo cách mạng."},"correctAnswer":"B"},{"id":"q_20_19","number":20,"text":"Sau Cách mạng Tháng Tám 1945, sự ra đời của Nhà nước VNDCCH có ý nghĩa gì đối với quá trình phát triển dân chủ ở Việt Nam?","options":{"A":"Hoàn thành việc xây dựng đầy đủ các thiết chế dân chủ XHCN trên mọi lĩnh vực của đời sống xã hội.","B":"Tạo cơ sở chính trị - pháp lý để nhân dân tham gia xây dựng chính quyền và từng bước thực hiện quyền làm chủ trong chế độ mới.","C":"Đánh dấu sự kết thúc của mọi mâu thuẫn giai cấp, tạo điều kiện thực hiện ngay nguyên tắc phân phối theo nhu cầu.","D":"Xác lập ngay cơ sở kinh tế của dân chủ XHCN thông qua việc chuyển toàn bộ tư liệu sản xuất sang sở hữu công cộng."},"correctAnswer":"B"},{"id":"q_21_20","number":21,"text":"Vì sao dân chủ không chỉ là quyền tự do của mỗi cá nhân mà còn là quyền lực thuộc về nhân dân?","options":{"A":"Dân chủ là quyền tham gia quản lý của các nhóm xã hội, trong đó quyền tự do cá nhân được xác định theo địa vị chính trị.","B":"Dân chủ vừa thể hiện quyền tự do của cá nhân, vừa phản ánh quyền làm chủ của nhân dân đối với công việc chung của xã hội.","C":"Dân chủ là hình thức tổ chức quyền lực nhà nước, còn quyền tự do cá nhân được bảo đảm thông qua các thiết chế pháp luật.","D":"Dân chủ chủ yếu thể hiện quyền tự do cá nhân, còn quyền lực của nhân dân được thực hiện thông qua các cơ quan nhà nước."},"correctAnswer":"B"},{"id":"q_22_21","number":22,"text":"Bản chất kinh tế của nền dân chủ XHCN ở Việt Nam được thể hiện như thế nào?","options":{"A":"Bảo đảm vai trò điều tiết của Nhà nước, lấy phân phối theo lao động làm hình thức duy nhất.","B":"Phát triển nền kinh tế thị trường định hướng XHCN, gắn tăng trưởng với tiến bộ và công bằng xã hội.","C":"Phát triển kinh tế thị trường với mục tiêu ưu tiên tăng trưởng và mở rộng quy mô sản xuất.","D":"Phát triển kinh tế dựa trên một hình thức sở hữu chủ yếu, bảo đảm sự đồng nhất về lợi ích kinh tế."},"correctAnswer":"B"},{"id":"q_23_22","number":23,"text":"Xét về bản chất kinh tế, nền dân chủ XHCN dựa trên cơ sở nào?","options":{"A":"Chế độ công hữu về tư liệu sản xuất chủ yếu, gắn với sự phát triển của lực lượng sản xuất trên cơ sở khoa học và công nghệ hiện đại.","B":"Chế độ phân phối theo nhu cầu xã hội, gắn với việc hạn chế khác biệt về thu nhập giữa các nhóm dân cư.","C":"Chế độ sở hữu hỗn hợp về tư liệu sản xuất, trong đó các thành phần kinh tế có quyền quyết định ngang nhau đối với nguồn lực xã hội.","D":"Chế độ tư hữu về tư liệu sản xuất chủ yếu, kết hợp với các chính sách điều tiết nhằm phân phối lại thành quả phát triển."},"correctAnswer":"A"},{"id":"q_24_23","number":24,"text":"Vì sao xây dựng dân chủ XHCN ở Việt Nam gắn với mục tiêu độc lập dân tộc và chủ nghĩa xã hội?","options":{"A":"Độc lập dân tộc và CNXH là hai mục tiêu riêng biệt, có thể thực hiện độc lập tùy điều kiện kinh tế, chính trị từng thời kỳ.","B":"Độc lập dân tộc tạo điều kiện để nhân dân làm chủ đất nước, còn định hướng XHCN hướng đến mở rộng quyền làm chủ và bảo đảm lợi ích của nhân dân.","C":"Độc lập dân tộc tạo điều kiện hình thành nhà nước thống nhất, còn dân chủ XHCN chủ yếu là phương thức tổ chức các cơ quan quản lý nhà nước.","D":"Độc lập dân tộc là mục tiêu chính trị trước mắt, còn CNXH chủ yếu là mô hình kinh tế được chọn để thúc đẩy tăng trưởng sau khi thống nhất đất nước."},"correctAnswer":"B"},{"id":"q_25_24","number":25,"text":"Sự xuất hiện của dân chủ chủ nô trong lịch sử phản ánh mối quan hệ nào giữa dân chủ và giai cấp?","options":{"A":"Dân chủ ra đời trong xã hội có giai cấp, đồng thời quyền dân chủ chủ yếu phục vụ lợi ích của giai cấp thống trị.","B":"Dân chủ ra đời nhằm bảo đảm quyền tham gia quản lý xã hội cho các thành viên trong cộng đồng có nhà nước.","C":"Dân chủ ra đời cùng nhà nước, nhưng quyền dân chủ được mở rộng tương ứng với sự phát triển của lực lượng sản xuất.","D":"Dân chủ ra đời để điều hòa lợi ích giữa các giai cấp, đồng thời duy trì sự ổn định của trật tự xã hội."},"correctAnswer":"A"}]};
+  let answers = {};
+  function render() {
+    const nav = document.getElementById('navGrid');
+    const cont = document.getElementById('qContainer');
+    nav.innerHTML = ''; cont.innerHTML = '';
+    let answered = 0, correct = 0, wrong = 0, gradable = 0;
+    QUIZ.questions.forEach(q => {
+      const sel = answers[q.id];
+      const hasKey = Boolean(q.correctAnswer);
+      if (sel) answered++;
+      if (hasKey) {
+        gradable++;
+        if (sel) { if (sel === q.correctAnswer) correct++; else wrong++; }
+      }
+      const btn = document.createElement('button');
+      btn.className = 'nav-cell' + (sel && hasKey ? (sel === q.correctAnswer ? ' correct' : ' wrong') : '');
+      btn.textContent = q.number;
+      btn.onclick = () => document.getElementById('c_' + q.id).scrollIntoView({behavior:'smooth'});
+      nav.appendChild(btn);
+
+      const card = document.createElement('div');
+      card.className = 'card'; card.id = 'c_' + q.id;
+      card.innerHTML = '<div class="q-num">Câu ' + q.number + '</div><div class="q-text"></div>';
+      card.querySelector('.q-text').textContent = q.text;
+      ['A','B','C','D'].forEach(l => {
+        const ob = document.createElement('button');
+        ob.className = 'opt';
+        if (sel) {
+          if (!hasKey && sel === l) ob.classList.add('neutral');
+          else if (hasKey && sel === l) ob.classList.add(sel === q.correctAnswer ? 'correct' : 'wrong');
+          else if (hasKey && l === q.correctAnswer) ob.classList.add('correct');
+        }
+        ob.textContent = l + '. ' + q.options[l];
+        ob.onclick = () => { answers[q.id] = l; render(); };
+        card.appendChild(ob);
+      });
+      if (sel) {
+        const fb = document.createElement('div');
+        if (!hasKey) { fb.className = 'fb unconf'; fb.textContent = 'Câu hỏi chưa được thiết lập đáp án đúng'; }
+        else if (sel === q.correctAnswer) { fb.className = 'fb correct'; fb.textContent = 'Chính xác!'; }
+        else { fb.className = 'fb wrong'; fb.textContent = 'Chưa chính xác! Phương án đúng là ' + q.correctAnswer + '. ' + q.options[q.correctAnswer]; }
+        card.appendChild(fb);
+      }
+      cont.appendChild(card);
+    });
+    const total = QUIZ.questions.length;
+    const acc = gradable > 0 ? Math.round((correct / gradable) * 100) : 0;
+    document.getElementById('stats').innerHTML =
+      '<span class="pill">Tổng: ' + total + '</span>' +
+      '<span class="pill">Đã trả lời: ' + answered + '</span>' +
+      '<span class="pill">Đúng: ' + correct + '</span>' +
+      '<span class="pill">Sai: ' + wrong + '</span>' +
+      '<span class="pill">Chưa trả lời: ' + (total - answered) + '</span>' +
+      '<span class="pill">Tỷ lệ: ' + acc + '%</span>';
+  }
+  function resetQuiz() { answers = {}; render(); }
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>20 chuong 3 (đã có đáp án) - Quiz Master Offline</title>
+<style>
+  :root {
+    --bg-sidebar: #0f172a;
+    --bg-main: #f1f5f9;
+    --primary: #2563eb;
+    --success: #16a34a;
+    --success-bg: #dcfce7;
+    --danger: #dc2626;
+    --danger-bg: #fee2e2;
+    --warning: #d97706;
+    --warning-bg: #fef3c7;
+    --border: #e2e8f0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg-main); color: #1e293b; display: flex; height: 100vh; overflow: hidden; }
+  .sidebar { width: 270px; background: var(--bg-sidebar); color: #f8fafc; display: flex; flex-direction: column; justify-content: space-between; height: 100vh; flex-shrink: 0; transition: width 0.25s; }
+  .sidebar.collapsed { width: 74px; }
+  .sidebar.collapsed .hide-on-collapse { display: none !important; }
+  .sidebar-top { padding: 16px; border-bottom: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; }
+  .nav-panel { padding: 12px; background: #0b1324; border-top: 1px solid #1e293b; }
+  .nav-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; max-height: 55vh; overflow-y: auto; margin-top: 8px; }
+  .sidebar.collapsed .nav-grid { grid-template-columns: repeat(2, 1fr); }
+  .nav-cell { height: 32px; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; color: #0f172a; font-weight: 700; cursor: pointer; }
+  .nav-cell.correct { background: var(--success); color: #fff; border-color: var(--success); }
+  .nav-cell.wrong { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  .topbar { background: #fff; border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill { padding: 5px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; background: #f8fafc; border: 1px solid var(--border); }
+  .scroll-area { flex: 1; overflow-y: auto; padding: 24px; scroll-behavior: smooth; }
+  .container { max-width: 840px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; padding-bottom: 50px; }
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .q-num { display: inline-block; background: #eff6ff; color: var(--primary); font-weight: 700; font-size: 0.84rem; padding: 4px 10px; border-radius: 6px; margin-bottom: 10px; }
+  .q-text { font-weight: 600; line-height: 1.55; white-space: pre-line; margin-bottom: 14px; }
+  .opt { width: 100%; text-align: left; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 9px; background: #fff; cursor: pointer; display: flex; gap: 10px; margin-bottom: 8px; font-size: 0.94rem; }
+  .opt.correct { background: var(--success-bg); border-color: var(--success); }
+  .opt.wrong { background: var(--danger-bg); border-color: var(--danger); }
+  .opt.neutral { background: #eff6ff; border-color: var(--primary); }
+  .fb { margin-top: 10px; padding: 10px 12px; border-radius: 8px; font-weight: 600; font-size: 0.88rem; }
+  .fb.correct { background: var(--success-bg); color: #15803d; }
+  .fb.wrong { background: var(--danger-bg); color: #b91c1c; }
+  .fb.unconf { background: var(--warning-bg); color: #b45309; }
+</style>
+</head>
+<body>
+  <aside class="sidebar" id="sb">
+    <div class="sidebar-top">
+      <strong class="hide-on-collapse">20 chuong 3 (đã có đáp án)</strong>
+      <button onclick="document.getElementById('sb').classList.toggle('collapsed')" style="background:transparent;border:1px solid #334155;color:#fff;padding:6px 10px;border-radius:6px;cursor:pointer">☰</button>
+    </div>
+    <div class="nav-panel">
+      <div style="font-size:0.75rem;color:#94a3b8;font-weight:700">ĐIỀU HƯỚNG CÂU HỎI</div>
+      <div class="nav-grid" id="navGrid"></div>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <h2>20 chuong 3 (đã có đáp án)</h2>
+      <div class="stats" id="stats"></div>
+      <button onclick="resetQuiz()" style="padding:8px 14px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;font-weight:600;cursor:pointer">↻ Làm lại</button>
+    </header>
+    <div class="scroll-area"><div class="container" id="qContainer"></div></div>
+  </main>
+<script>
+  const QUIZ = {"name":"20 chuong 3 (đã có đáp án)","questions":[{"id":"q_1_0","number":1,"text":"Khi phân tích khái niệm chủ nghĩa xã hội dưới góc độ là một phong trào thực tiễn, việc khẳng định tính chất “tự giác” của phong trào này mang ý nghĩa lý luận cốt lõi nào?","options":{"A":"Phản ánh mâu thuẫn giữa giai cấp công nhân và giai cấp tư sản dẫn đến phong trào công nhân nổ ra khắp mọi nơi nhưng bị thất bại.","B":"Phản ánh phong trào đấu tranh quần chúng lao động đòi tăng lương, giảm giờ làm và cải thiện điều kiện làm việc.","C":"Phản ánh mâu thuẫn giữa lực lượng sản xuất phát triển mang tính xã hội hóa cao với quan hệ sản xuất dựa trên chế độ sở hữu tư nhân tư bản chủ nghĩa.","D":"Phản ánh phong trào đấu tranh có mục tiêu, đường lối rõ ràng dưới sự lãnh đạo của Đảng Cộng sản dựa trên lý luận của chủ nghĩa Mác - Lênin."},"correctAnswer":"D"},{"id":"q_2_1","number":2,"text":"Văn kiện Đại hội XIV định vị cột mốc chiến lược nào cho chặng đường tiếp theo của thời kỳ quá độ lên chủ nghĩa xã hội ở nước ta vào năm 2030?","options":{"A":"Hoàn thành toàn bộ thời kỳ quá độ và bước hẳn sang giai đoạn cao của hình thái cộng sản chủ nghĩa.","B":"Là nước đang phát triển, có công nghiệp hiện đại, thu nhập trung bình cao.","C":"Trở thành nước phát triển, thu nhập cao theo định hướng xã hội chủ nghĩa.","D":"Quay lại mô hình kinh tế kế hoạch hóa tập trung để xóa bỏ hoàn toàn các thành phần kinh tế khác."},"correctAnswer":"B"},{"id":"q_3_2","number":3,"text":"Khi xem xét chủ nghĩa xã hội như một chế độ xã hội, cách hiểu nào thể hiện đầy đủ nhất nội dung cơ bản của khái niệm này theo quan điểm của chủ nghĩa Mác - Lênin?","options":{"A":"Một mô hình tổ chức xã hội ưu tiên phân phối thu nhập bình quân, hạn chế chênh lệch kinh tế và bảo đảm mọi cá nhân có điều kiện sống tương đương nhau.","B":"Một phương thức quản lý xã hội trong đó nhà nước trực tiếp tổ chức phần lớn hoạt động kinh tế, kiểm soát tư liệu sản xuất và phân phối sản phẩm.","C":"Một chế độ xã hội được xây dựng trên cơ sở phát triển lực lượng sản xuất hiện đại, từng bước xác lập quan hệ sản xuất phù hợp và hướng đến giải phóng con người.","D":"Một hệ thống chính trị bảo đảm quyền lực thuộc về người lao động, lấy bình đẳng về quyền chính trị làm cơ sở chủ yếu để tổ chức đời sống xã hội."},"correctAnswer":"C"},{"id":"q_4_3","number":4,"text":"Về mặt kinh tế, điều kiện khách quan trực tiếp và quan trọng nhất dẫn đến sự ra đời tất yếu của hình thái kinh tế - xã hội cộng sản chủ nghĩa là gì?","options":{"A":"Sự phát triển của lực lượng sản xuất mang tính chất cá nhân ngày càng cao làm nảy sinh mâu thuẫn giữa lực lượng sản xuất và quan hệ sản xuất tư bản chủ nghĩa.","B":"Mâu thuẫn giữa lực lượng sản xuất đã đạt trình độ xã hội hóa cao với quan hệ sản xuất dựa trên chế độ tư hữu TBCN.","C":"Sự hình thành chính đảng của giai cấp công nhân (Đảng Cộng sản) để tổ chức và lãnh đạo cách mạng xã hội chủ nghĩa.","D":"Giai cấp công nhân phát triển cả về số lượng và chất lượng nhưng phong trào công nhân bị thất bại đòi hỏi phải có một học thuyết khoa học, cách mạng chỉ đường."},"correctAnswer":"B"},{"id":"q_5_4","number":5,"text":"Tại sao đối với các nước chưa trải qua chủ nghĩa tư bản phát triển, thời kỳ quá độ lên chủ nghĩa xã hội lại càng trở nên tất yếu và phức tạp hơn?","options":{"A":"Vì phải đồng thời thực hiện nhiệm vụ phát triển lực lượng sản xuất hiện đại và xác lập quan hệ sản xuất XHCN.","B":"Vì quan hệ sản xuất tư bản chủ nghĩa ở các nước này đã phát triển hoàn chỉnh và thống trị nền kinh tế.","C":"Vì các nước này đã có sẵn cơ sở vật chất - kỹ thuật hiện đại của CNXH nên không cần phát triển kinh tế.","D":"Vì giai cấp công nhân ở các nước này đã chiếm đa số tuyệt đối trong cơ cấu dân cư ngay từ đầu."},"correctAnswer":"A"},{"id":"q_6_5","number":6,"text":"Trong một cuộc thảo luận, sinh viên B khẳng định sự tan rã của Liên Xô và các nước xã hội chủ nghĩa Đông Âu đã chứng minh chủ nghĩa Mác sai về bản chất. Cách phản biện nào thể hiện năng lực vận dụng lý luận lịch sử và phương pháp luận tốt nhất?","options":{"A":"Chứng minh mô hình xã hội chủ nghĩa ở Việt Nam khác hoàn toàn mô hình Liên Xô, từ đó kết luận những vấn đề dẫn đến sự tan rã trước đây không thể xuất hiện ở Việt Nam.","B":"Khẳng định sự tan rã chỉ bắt nguồn từ những sai lầm trong lãnh đạo và quản lý, vì vậy không cần xem xét các vấn đề lý luận hay điều kiện kinh tế - xã hội của mô hình đó.","C":"Phân biệt giữa giá trị lý luận của chủ nghĩa Mác với mô hình vận dụng cụ thể; phân tích các nguyên nhân lịch sử, chính trị, kinh tế và những hạn chế trong quá trình xây dựng chủ nghĩa xã hội.","D":"Cho rằng sự tan rã không ảnh hưởng đến giá trị của chủ nghĩa Mác, bởi những nguyên lý lý luận có tính khoa học luôn đúng bất kể kết quả vận dụng trong thực tiễn."},"correctAnswer":"C"},{"id":"q_7_6","number":7,"text":"Khi đánh giá con đường cách mạng Việt Nam, một sinh viên cho rằng chỉ cần xác định được một hệ tư tưởng tiến bộ thì có thể kết luận con đường đó phù hợp, không cần xem xét kết quả thực tiễn của cách mạng. Cách tiếp cận nào sau đây phù hợp nhất với yêu cầu phân tích trong môn Chủ nghĩa xã hội khoa học?","options":{"A":"Chỉ cần căn cứ vào những thắng lợi quân sự của cách mạng, bởi các kết quả về chính trị, xã hội và định hướng phát triển đất nước không liên quan đến việc đánh giá con đường cách mạng.","B":"Cần xem xét cả cơ sở lý luận, hoàn cảnh lịch sử và những thắng lợi của cách mạng Việt Nam để đánh giá mức độ phù hợp của đường lối độc lập dân tộc gắn liền với chủ nghĩa xã hội trong thực tiễn.","C":"Cần đánh giá đường lối cách mạng chủ yếu dựa trên mức độ tương đồng với mô hình của các quốc gia khác, bởi kết quả thực tiễn tại Việt Nam không đủ để xem xét tính phù hợp của đường lối.","D":"Chỉ cần xem xét tính tiến bộ của hệ tư tưởng được lựa chọn, bởi kết quả thực tiễn chịu ảnh hưởng của nhiều yếu tố nên không có giá trị trong việc đánh giá đường lối cách mạng."},"correctAnswer":"B"},{"id":"q_8_7","number":8,"text":"Chọn câu sai khi nói đến khái niệm “chủ nghĩa xã hội”.","options":{"A":"Là trào lưu tư tưởng, lý luận phản ánh lý tưởng giải phóng nhân dân lao động khỏi áp bức, bóc lột, bất công.","B":"Là một chế độ xã hội tốt đẹp, giai đoạn cuối của hình thái kinh tế - xã hội cộng sản chủ nghĩa.","C":"Là một khoa học về sứ mệnh lịch sử của giai cấp công nhân.","D":"Một phong trào thực tiễn, phong trào đấu tranh của nhân dân lao động chống lại áp bức, bất công, chống lại các giai cấp thống trị."},"correctAnswer":"B"},{"id":"q_9_8","number":9,"text":"Một địa phương sử dụng cơ chế thị trường để thu hút đầu tư, đồng thời hoàn thiện quy hoạch và chính sách nhằm hạn chế ô nhiễm, bảo đảm lợi ích cộng đồng. Cách làm này thể hiện định hướng nào trong xây dựng CNXH ở Việt Nam?","options":{"A":"Vận hành nền kinh tế theo cơ chế thị trường gắn với sự quản lý của Nhà nước và định hướng XHCN.","B":"Hạn chế cạnh tranh trên thị trường để bảo đảm các chủ thể kinh tế có điều kiện hoạt động tương đương.","C":"Ưu tiên mục tiêu lợi nhuận của doanh nghiệp, sử dụng chính sách xã hội để xử lý các hệ quả phát sinh.","D":"Tăng cường quản lý hành chính để thay thế vai trò điều tiết của thị trường."},"correctAnswer":"A"},{"id":"q_10_9","number":10,"text":"Việt Nam thúc đẩy ứng dụng công nghệ hiện đại trong sản xuất, đồng thời cải thiện các chỉ số về giáo dục và sức khỏe. Thực tiễn này phản ánh yêu cầu nào trong đặc trưng kinh tế của CNXH ở Việt Nam?","options":{"A":"Ưu tiên tăng trưởng sản lượng, sau đó mới thực hiện các mục tiêu về giáo dục và sức khỏe.","B":"Mở rộng sản xuất theo cơ chế thị trường, giảm dần vai trò quản lý của Nhà nước đối với phát triển xã hội.","C":"Phát triển LLSX hiện đại, xây dựng QHSX tiến bộ, phù hợp và gắn phát triển kinh tế với nâng cao đời sống nhân dân.","D":"Tập trung nâng cao các chỉ số xã hội, không đặt yêu cầu đổi mới công nghệ và nâng cao năng suất lao động."},"correctAnswer":"C"},{"id":"q_11_10","number":11,"text":"Để khắc phục triệt để tình trạng cán bộ sợ sai, sợ trách nhiệm, đùn đẩy công việc, Văn kiện Đại hội XIV nhấn mạnh giải pháp song song nào trong công tác chính trị - cán bộ?","options":{"A":"Miễn trừ trách nhiệm tuyệt đối đối với tất cả các sai phạm của cán bộ khi thực hiện dự án đầu tư công.","B":"Ngừng phân cấp, phân quyền và chuyển toàn bộ thẩm quyền quyết định công việc về cho người đứng đầu cấp ủy cấp cao nhất.","C":"Tăng mức lương và phụ cấp đặc thù, đồng thời giảm bớt khối lượng công việc hằng ngày cho cán bộ.","D":"Cụ thể hóa cơ chế bảo vệ cán bộ dám nghĩ, dám làm, dám đổi mới vì lợi ích chung, đồng thời kiên quyết, kịp thời thay thế những cán bộ né tránh, đùn đẩy."},"correctAnswer":"D"},{"id":"q_12_11","number":12,"text":"Khi phản bác quan điểm Việt Nam đi lên CNXH là đi theo “vết xe đổ” của Liên Xô, bài học nào cần được vận dụng vào thực tiễn đổi mới ở Việt Nam?","options":{"A":"Ưu tiên duy trì các thiết chế quản lý đã được kiểm nghiệm trong mô hình XHCN trước đây, hạn chế thay đổi để bảo đảm tính ổn định của hệ thống.","B":"Kiên định mục tiêu độc lập dân tộc gắn liền với CNXH, đồng thời chủ động đổi mới tư duy, hoàn thiện thể chế và khắc phục những hạn chế trong lãnh đạo, quản lý.","C":"Tập trung phát triển kinh tế trước, còn đổi mới chính trị, xây dựng Đảng và phát huy dân chủ có thể thực hiện sau khi đã đạt trình độ phát triển cao.","D":"Xem sự khác biệt về điều kiện lịch sử giữa Việt Nam và Liên Xô là cơ sở để không vận dụng những bài học kinh nghiệm từ sự sụp đổ của mô hình XHCN trước đây."},"correctAnswer":"B"},{"id":"q_13_12","number":13,"text":"Khi mô tả đặc trưng cơ bản về mặt kinh tế của chủ nghĩa xã hội, chủ nghĩa Mác - Lênin khẳng định đặc trưng nào sau đây là cốt lõi nhất?","options":{"A":"Có lực lượng sản xuất hiện đại, đồng thời từng bước xác lập quan hệ sản xuất phù hợp, trong đó tư hữu giữ vai trò đối với những tư liệu sản xuất chủ yếu.","B":"Nền kinh tế trong đó nhà nước sở hữu toàn bộ tư liệu sản xuất, trực tiếp phân phối sản phẩm và quản lý mọi hoạt động kinh tế.","C":"Có lực lượng sản xuất phát triển cao và quan hệ sản xuất dựa trên chế độ công hữu về tư liệu sản xuất chủ yếu.","D":"Có lực lượng sản xuất phát triển cao và quan hệ sản xuất dựa trên chế độ tư hữu về tư liệu sản xuất chủ yếu."},"correctAnswer":"C"},{"id":"q_14_13","number":14,"text":"Phong trào “Cả nước chung tay vì người nghèo - Không để ai bị bỏ lại phía sau” thể hiện rõ nhất đặc trưng nào của CNXH ở Việt Nam?","options":{"A":"Con người có cuộc sống ấm no, tự do, hạnh phúc, có điều kiện phát triển toàn diện.","B":"Có quan hệ hữu nghị và hợp tác với các nước trên thế giới.","C":"Có Nhà nước pháp quyền XHCN của nhân dân, do nhân dân, vì nhân dân.","D":"Có nền kinh tế phát triển cao dựa trên LLSX hiện đại và QHSX tiến bộ, phù hợp."},"correctAnswer":"A"},{"id":"q_15_14","number":15,"text":"Giai đoạn sau của hình thái kinh tế - xã hội cộng sản chủ nghĩa là?","options":{"A":"Chủ nghĩa tư bản hoặc chế độ phong kiến.","B":"Thời kỳ quá độ lên chủ nghĩa xã hội.","C":"Chủ nghĩa cộng sản.","D":"Chủ nghĩa xã hội."},"correctAnswer":"C"},{"id":"q_16_15","number":16,"text":"Chọn câu đúng khi đề cập đến các hình thức quá độ lên chủ nghĩa xã hội?","options":{"A":"Cả ba câu đều đúng.","B":"Quá độ gián tiếp là quá độ từ những quốc gia có chế độ phong kiến lên chế độ xã hội chủ nghĩa.","C":"Quá độ trực tiếp là quá độ từ những nước có chế độ tư bản chủ nghĩa phát triển.","D":"Quá độ gián tiếp là quá độ từ những nước chưa qua giai đoạn tư bản chủ nghĩa hoặc tư bản chủ nghĩa phát triển thấp, trung bình."},"correctAnswer":"A"},{"id":"q_17_16","number":17,"text":"Nhằm bảo vệ vững chắc Tổ quốc XHCN trong bối cảnh các đe dọa an ninh phi truyền thống gia tăng, Đại hội XIV của Đảng đề ra giải pháp đột phá nào về quốc phòng, an ninh?","options":{"A":"Chuyển tư duy từ bảo vệ thụ động sang chủ động kiến tạo, xác lập quan điểm an ninh toàn diện, tự chủ chiến lược và phát triển công nghiệp quốc phòng, an ninh lưỡng dụng.","B":"Xây dựng hệ thống công sự phòng thủ kiên cố tại các khu vực biên giới truyền thống.","C":"Khép kín quan hệ đối ngoại quân sự nhằm tránh các xung đột địa chính trị trên thế giới.","D":"Giảm quy mô lực lượng vũ trang để tập trung toàn bộ ngân sách cho phát triển kinh tế dân sinh."},"correctAnswer":"A"},{"id":"q_18_17","number":18,"text":"Theo quan điểm được Đảng Cộng sản Việt Nam khẳng định tại Đại hội IX, việc quá độ lên chủ nghĩa xã hội bỏ qua chế độ tư bản chủ nghĩa ở Việt Nam cần được hiểu như thế nào về phương diện kế thừa và phát triển?","options":{"A":"Bỏ qua việc xác lập vị trí thống trị của quan hệ sản xuất và kiến trúc thượng tầng tư bản chủ nghĩa, đồng thời tiếp thu có chọn lọc những thành tựu mà nhân loại đạt được dưới chủ nghĩa tư bản, nhất là khoa học và công nghệ, để phát triển lực lượng sản xuất.","B":"Bỏ qua việc thiết lập chế độ chính trị tư bản chủ nghĩa, nhưng tiếp thu nguyên vẹn mô hình kinh tế thị trường và hệ thống quản lý xã hội của các nước tư bản phát triển để thúc đẩy quá trình công nghiệp hóa, hiện đại hóa.","C":"Bỏ qua việc phát triển đầy đủ lực lượng sản xuất và nền kinh tế thị trường theo trình tự tư bản chủ nghĩa, đồng thời ưu tiên xây dựng quan hệ sản xuất xã hội chủ nghĩa trước khi tạo lập những điều kiện vật chất tương ứng.","D":"Bỏ qua toàn bộ các yếu tố kinh tế, chính trị và xã hội của chủ nghĩa tư bản, đồng thời xây dựng lực lượng sản xuất và quan hệ sản xuất xã hội chủ nghĩa trên cơ sở những điều kiện sẵn có của đất nước."},"correctAnswer":"A"},{"id":"q_19_18","number":19,"text":"Đặc trưng tổng quát đầu tiên phản ánh mục tiêu cao nhất của mô hình xã hội xã hội chủ nghĩa mà nhân dân Việt Nam đang xây dựng là gì?","options":{"A":"Có quan hệ hữu nghị và hợp tác với các nước trên thế giới.","B":"Do nhân dân làm chủ, có nền kinh tế phát triển cao.","C":"Có Nhà nước pháp quyền XHCN của nhân dân, do nhân dân, vì nhân dân.","D":"Dân giàu, nước mạnh, dân chủ, công bằng, văn minh."},"correctAnswer":"D"},{"id":"q_20_19","number":20,"text":"Giai đoạn đầu của hình thái kinh tế - xã hội cộng sản chủ nghĩa là?","options":{"A":"Chủ nghĩa tư bản hoặc chế độ phong kiến.","B":"Chủ nghĩa xã hội.","C":"Thời kỳ quá độ lên chủ nghĩa xã hội.","D":"Chủ nghĩa cộng sản."},"correctAnswer":"B"}]};
+  let answers = {};
+  function render() {
+    const nav = document.getElementById('navGrid');
+    const cont = document.getElementById('qContainer');
+    nav.innerHTML = ''; cont.innerHTML = '';
+    let answered = 0, correct = 0, wrong = 0, gradable = 0;
+    QUIZ.questions.forEach(q => {
+      const sel = answers[q.id];
+      const hasKey = Boolean(q.correctAnswer);
+      if (sel) answered++;
+      if (hasKey) {
+        gradable++;
+        if (sel) { if (sel === q.correctAnswer) correct++; else wrong++; }
+      }
+      const btn = document.createElement('button');
+      btn.className = 'nav-cell' + (sel && hasKey ? (sel === q.correctAnswer ? ' correct' : ' wrong') : '');
+      btn.textContent = q.number;
+      btn.onclick = () => document.getElementById('c_' + q.id).scrollIntoView({behavior:'smooth'});
+      nav.appendChild(btn);
+
+      const card = document.createElement('div');
+      card.className = 'card'; card.id = 'c_' + q.id;
+      card.innerHTML = '<div class="q-num">Câu ' + q.number + '</div><div class="q-text"></div>';
+      card.querySelector('.q-text').textContent = q.text;
+      ['A','B','C','D'].forEach(l => {
+        const ob = document.createElement('button');
+        ob.className = 'opt';
+        if (sel) {
+          if (!hasKey && sel === l) ob.classList.add('neutral');
+          else if (hasKey && sel === l) ob.classList.add(sel === q.correctAnswer ? 'correct' : 'wrong');
+          else if (hasKey && l === q.correctAnswer) ob.classList.add('correct');
+        }
+        ob.textContent = l + '. ' + q.options[l];
+        ob.onclick = () => { answers[q.id] = l; render(); };
+        card.appendChild(ob);
+      });
+      if (sel) {
+        const fb = document.createElement('div');
+        if (!hasKey) { fb.className = 'fb unconf'; fb.textContent = 'Câu hỏi chưa được thiết lập đáp án đúng'; }
+        else if (sel === q.correctAnswer) { fb.className = 'fb correct'; fb.textContent = 'Chính xác!'; }
+        else { fb.className = 'fb wrong'; fb.textContent = 'Chưa chính xác! Phương án đúng là ' + q.correctAnswer + '. ' + q.options[q.correctAnswer]; }
+        card.appendChild(fb);
+      }
+      cont.appendChild(card);
+    });
+    const total = QUIZ.questions.length;
+    const acc = gradable > 0 ? Math.round((correct / gradable) * 100) : 0;
+    document.getElementById('stats').innerHTML =
+      '<span class="pill">Tổng: ' + total + '</span>' +
+      '<span class="pill">Đã trả lời: ' + answered + '</span>' +
+      '<span class="pill">Đúng: ' + correct + '</span>' +
+      '<span class="pill">Sai: ' + wrong + '</span>' +
+      '<span class="pill">Chưa trả lời: ' + (total - answered) + '</span>' +
+      '<span class="pill">Tỷ lệ: ' + acc + '%</span>';
+  }
+  function resetQuiz() { answers = {}; render(); }
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,2388 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz Master — Quản Lý & Làm Bài Trắc Nghiệm</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- JSZip for reading and generating .docx files directly in browser -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      overflow: hidden;
+    }
+    /* Custom scrollbars */
+    .dark-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .dark-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.4);
+    }
+    .dark-scroll::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    .dark-scroll::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    .light-scroll::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    .light-scroll::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .light-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    .light-scroll::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Smooth highlight pulse when scrolling to a question */
+    @keyframes highlightPulse {
+      0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5); border-color: #2563eb; }
+      70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); border-color: #2563eb; }
+      100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+    }
+    .question-focus-pulse {
+      animation: highlightPulse 1.3s ease-out;
+    }
+
+    /* Sidebar width transition */
+    #sidebar {
+      transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex overflow-hidden select-none sm:select-auto">
+
+  <!-- Hidden file input for immediate .docx upload -->
+  <input type="file" id="docxFileInput" accept=".docx" class="hidden" />
+
+  <!-- Mobile backdrop overlay when drawer is open -->
+  <div id="mobileOverlay" onclick="closeMobileSidebar()" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-30 hidden lg:hidden transition-opacity"></div>
+
+  <!-- ==================== LEFT SIDEBAR (DARK THEME) ==================== -->
+  <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-40 w-80 bg-slate-900 text-slate-100 flex flex-col h-full border-r border-slate-800 shadow-2xl lg:shadow-none -translate-x-full lg:translate-x-0 shrink-0">
+    
+    <!-- 1. TOP SIDEBAR HEADER: Brand + Collapse/Expand + New Button -->
+    <div class="p-3.5 border-b border-slate-800/90 flex flex-col gap-3 shrink-0">
+      <div class="flex items-center justify-between">
+        <!-- Brand Logo & Name -->
+        <div id="sidebarBrand" class="flex items-center gap-2.5 overflow-hidden">
+          <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-600/30 shrink-0">
+            <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+          </div>
+          <div class="sidebar-expanded-only truncate">
+            <h1 class="font-bold text-base tracking-tight text-white leading-none">Quiz Master</h1>
+            <span class="text-[11px] text-slate-400 font-medium">Quản lý đề trắc nghiệm</span>
+          </div>
+        </div>
+
+        <!-- Collapse / Expand Button (Desktop) & Close (Mobile) -->
+        <button id="toggleSidebarBtn" onclick="toggleSidebarCollapse()" title="Thu gọn / Mở rộng thanh bên" class="hidden lg:flex w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white items-center justify-center transition-colors shrink-0">
+          <i id="collapseIcon" data-lucide="panel-left-close" class="w-4 h-4"></i>
+        </button>
+        <button onclick="closeMobileSidebar()" title="Đóng menu" class="lg:hidden w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- "New" / "+" Import Word Button -->
+      <div class="flex gap-1.5">
+        <button onclick="triggerDirectWordUpload()" title="Nhập bộ đề mới từ tệp Word (.docx)" class="flex-1 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold py-2.5 px-3 rounded-xl shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 transition-all cursor-pointer">
+          <i data-lucide="plus" class="w-4 h-4 shrink-0 stroke-[2.5]"></i>
+          <span class="sidebar-expanded-only text-sm truncate">New (Nhập Word)</span>
+        </button>
+        <button onclick="openImportAssistantModal()" title="Trợ lý nhập đề / Tải file Word mẫu / Dán văn bản" class="sidebar-expanded-only px-2.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center justify-center shrink-0">
+          <i data-lucide="file-up" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Auto-export HTML toggle -->
+      <label class="sidebar-expanded-only flex items-center justify-between px-2 py-1.5 rounded-lg bg-slate-800/60 border border-slate-800 text-[11px] text-slate-300 cursor-pointer hover:bg-slate-800 transition-colors">
+        <span class="flex items-center gap-1.5 truncate" title="Tự động tải xuống tệp HTML độc lập ngay sau khi nhập tệp Word hợp lệ">
+          <i data-lucide="file-code-2" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
+          <span>Tự xuất HTML khi nhập</span>
+        </span>
+        <input type="checkbox" id="autoDownloadHtmlCheckbox" checked onchange="toggleAutoDownloadSetting(this.checked)" class="rounded text-blue-600 focus:ring-0 w-3.5 h-3.5 accent-blue-600 cursor-pointer" />
+      </label>
+    </div>
+
+    <!-- 2. MIDDLE SIDEBAR: QUIZ SETS LIST ("BỘ ĐỀ") -->
+    <div class="flex-1 min-h-0 flex flex-col border-b border-slate-800">
+      <div class="px-3.5 pt-3 pb-1.5 flex items-center justify-between shrink-0">
+        <span class="sidebar-expanded-only text-[11px] font-bold uppercase tracking-wider text-slate-400">BỘ ĐỀ (<span id="quizCountBadge">0</span>)</span>
+        <button onclick="openImportAssistantModal()" class="sidebar-expanded-only text-[11px] text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 transition-colors">
+          <i data-lucide="download" class="w-3 h-3"></i>
+          <span>File mẫu</span>
+        </button>
+      </div>
+
+      <!-- Scrollable List of Quiz Sets -->
+      <div id="quizSetListContainer" class="flex-1 overflow-y-auto dark-scroll px-2.5 py-1.5 space-y-1">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- 3. BOTTOM FIXED QUESTION NAVIGATOR ("ĐIỀU HƯỚNG CÂU HỎI") -->
+    <!-- Always anchored to the bottom-left inside the sidebar, with independent scroll -->
+    <div id="navigatorSection" class="shrink-0 bg-slate-950/80 pt-3 pb-3.5 px-3 flex flex-col max-h-[44%]">
+      <div class="flex items-center justify-between mb-2 shrink-0">
+        <div class="flex items-center gap-1.5">
+          <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-blue-400 shrink-0"></i>
+          <span class="sidebar-expanded-only text-[11px] font-bold uppercase tracking-wider text-slate-300">ĐIỀU HƯỚNG CÂU HỎI</span>
+        </div>
+        <span id="navProgressMini" class="sidebar-expanded-only text-[11px] font-semibold text-slate-400 bg-slate-800/90 px-2 py-0.5 rounded-full">0/0</span>
+      </div>
+
+      <!-- Color Legend (Expanded mode only) -->
+      <div class="sidebar-expanded-only grid grid-cols-3 gap-1 mb-2.5 text-[10px] text-slate-400 bg-slate-900/90 p-1.5 rounded-lg border border-slate-800/80 shrink-0">
+        <div class="flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-xs bg-white border border-slate-300 inline-block shrink-0"></span>
+          <span class="truncate">Chưa/K.ĐA</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-xs bg-emerald-600 inline-block shrink-0"></span>
+          <span class="truncate">Đúng</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-xs bg-red-600 inline-block shrink-0"></span>
+          <span class="truncate">Sai</span>
+        </div>
+      </div>
+
+      <!-- Question Number Grid (Independent Scroll) -->
+      <div id="questionNavGrid" class="overflow-y-auto dark-scroll pr-1 grid grid-cols-5 gap-1.5">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==================== RIGHT MAIN CONTENT AREA (LIGHT THEME) ==================== -->
+  <div class="flex-1 flex flex-col h-full min-w-0 bg-slate-50 overflow-hidden">
+    
+    <!-- Sticky Header & Live Statistics Bar -->
+    <header class="bg-white border-b border-slate-200/90 shadow-xs z-20 shrink-0">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3">
+        <!-- Top Row: Title + Action Buttons -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <!-- Mobile Hamburger Button -->
+            <button onclick="openMobileSidebar()" class="lg:hidden p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 shrink-0">
+              <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <h2 id="activeQuizTitle" class="text-lg sm:text-xl font-bold text-slate-900 truncate">Đang tải bộ đề...</h2>
+                <button onclick="promptRenameActiveQuiz()" title="Đổi tên bộ đề" class="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors shrink-0">
+                  <i data-lucide="pencil" class="w-4 h-4"></i>
+                </button>
+              </div>
+              <p id="activeQuizMeta" class="text-xs text-slate-500 truncate">Nhập từ tệp Word (.docx) • Chấm đáp án tức thì</p>
+            </div>
+          </div>
+
+          <!-- Header Action Buttons -->
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="openResetConfirmModal()" title="Đặt lại toàn bộ lựa chọn và thống kê của bộ đề này" class="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-semibold text-xs sm:text-sm flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer">
+              <i data-lucide="rotate-ccw" class="w-4 h-4 text-slate-600"></i>
+              <span>Làm lại</span>
+            </button>
+
+            <button onclick="exportActiveQuizStandaloneHTML()" title="Xuất bộ đề hiện tại thành tệp HTML độc lập chạy không cần Internet" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold text-xs sm:text-sm flex items-center gap-1.5 shadow-sm shadow-blue-600/20 transition-all cursor-pointer">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>Xuất HTML độc lập</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Bottom Row: 6 Required Statistics Cards -->
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-3">
+          <!-- 1. Tổng số câu -->
+          <div class="bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 flex flex-col">
+            <span class="text-[11px] font-medium text-slate-500">Tổng số câu</span>
+            <span id="statTotal" class="text-base sm:text-lg font-bold text-slate-900">0</span>
+          </div>
+          <!-- 2. Đã trả lời -->
+          <div class="bg-blue-50/60 border border-blue-200/70 rounded-xl px-3 py-2 flex flex-col">
+            <span class="text-[11px] font-medium text-blue-700">Đã trả lời</span>
+            <span id="statAnswered" class="text-base sm:text-lg font-bold text-blue-700">0</span>
+          </div>
+          <!-- 3. Số câu đúng -->
+          <div class="bg-emerald-50/70 border border-emerald-200/80 rounded-xl px-3 py-2 flex flex-col">
+            <span class="text-[11px] font-medium text-emerald-700">Số câu đúng</span>
+            <span id="statCorrect" class="text-base sm:text-lg font-bold text-emerald-600">0</span>
+          </div>
+          <!-- 4. Số câu sai -->
+          <div class="bg-red-50/70 border border-red-200/80 rounded-xl px-3 py-2 flex flex-col">
+            <span class="text-[11px] font-medium text-red-700">Số câu sai</span>
+            <span id="statWrong" class="text-base sm:text-lg font-bold text-red-600">0</span>
+          </div>
+          <!-- 5. Chưa trả lời -->
+          <div class="bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 flex flex-col">
+            <span class="text-[11px] font-medium text-slate-500">Chưa trả lời</span>
+            <span id="statUnanswered" class="text-base sm:text-lg font-bold text-slate-700">0</span>
+          </div>
+          <!-- 6. Tỷ lệ chính xác -->
+          <div class="bg-indigo-50/70 border border-indigo-200/80 rounded-xl px-3 py-2 flex flex-col" title="Chỉ tính trên các câu hỏi đã được thiết lập đáp án đúng (*)">
+            <span class="text-[11px] font-medium text-indigo-700 flex items-center gap-1">
+              <span>Tỷ lệ đúng</span>
+              <i data-lucide="info" class="w-3 h-3 text-indigo-400"></i>
+            </span>
+            <span id="statAccuracy" class="text-base sm:text-lg font-bold text-indigo-700">0%</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Scrollable Questions Container -->
+    <main id="questionsScrollContainer" class="flex-1 overflow-y-auto light-scroll px-4 sm:px-6 py-6">
+      <div id="questionsListWrapper" class="max-w-4xl mx-auto space-y-6 pb-20">
+        <!-- Questions continuously rendered here by JS -->
+      </div>
+    </main>
+  </div>
+
+  <!-- ==================== MODAL 1: IMPORT / WORD SAMPLE / VALIDATION ERRORS ==================== -->
+  <div id="importModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+            <i data-lucide="file-up" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-base">Nhập bộ đề từ tệp Word (.docx)</h3>
+            <p class="text-xs text-slate-400">Tự động tách câu hỏi, nhận diện đáp án đúng (*) và xuất HTML độc lập</p>
+          </div>
+        </div>
+        <button onclick="closeImportAssistantModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 overflow-y-auto light-scroll space-y-5">
+        <!-- Dropzone for .docx -->
+        <div id="dropZone" onclick="triggerDirectWordUpload()" class="border-2 border-dashed border-blue-300 hover:border-blue-500 bg-blue-50/40 hover:bg-blue-50/80 rounded-2xl p-6 text-center cursor-pointer transition-all">
+          <div class="w-12 h-12 rounded-2xl bg-blue-600/10 text-blue-600 flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+          </div>
+          <p class="font-bold text-slate-800 text-sm sm:text-base">Nhấn để chọn tệp Word (<code class="text-blue-600">.docx</code>) hoặc kéo thả vào đây</p>
+          <p class="text-xs text-slate-500 mt-1">Hỗ trợ tiếng Việt có dấu, câu hỏi nhiều dòng, kiểm tra lỗi định dạng tự động</p>
+        </div>
+
+        <!-- Format Guide & Sample .docx Download -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+              <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
+              Quy chuẩn định dạng tệp Word (.docx)
+            </span>
+            <div class="flex items-center gap-2">
+              <button onclick="downloadSampleDocxFile('valid')" class="text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>Tải tệp .docx mẫu chuẩn</span>
+              </button>
+              <button onclick="downloadSampleDocxFile('error')" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-colors cursor-pointer" title="Tải tệp .docx có lỗi để kiểm thử tính năng bắt lỗi định dạng">
+                <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-700"></i>
+                <span>File .docx mẫu lỗi</span>
+              </button>
+            </div>
+          </div>
+
+          <pre class="bg-slate-900 text-slate-100 text-xs rounded-xl p-3.5 font-mono leading-relaxed overflow-x-auto">Câu 1: Giao thức nào hoạt động ở tầng Transport trong mô hình OSI?
+A. HTTP
+B. IP
+*C. TCP
+D. ARP
+
+Câu 2: Câu hỏi thảo luận chưa thiết lập đáp án đúng (không có dấu *):
+A. Phương án A
+B. Phương án B
+C. Phương án C
+D. Phương án D</pre>
+
+          <ul class="text-xs text-slate-600 space-y-1 list-disc list-inside">
+            <li>Mỗi câu bắt đầu bằng <code class="font-semibold text-slate-800">Câu [số]:</code> và có đủ 4 phương án <code class="font-semibold text-slate-800">A.</code>, <code class="font-semibold text-slate-800">B.</code>, <code class="font-semibold text-slate-800">C.</code>, <code class="font-semibold text-slate-800">D.</code></li>
+            <li>Đặt dấu <code class="font-bold text-emerald-700">*</code> ngay trước chữ cái phương án đúng (ví dụ <code class="font-bold text-emerald-700">*C.</code>). Tối đa 1 dấu <code class="font-bold">*</code> mỗi câu.</li>
+            <li>Cho phép câu hỏi chưa có dấu <code class="font-bold">*</code> (hệ thống ghi nhận là câu hỏi chưa thiết lập đáp án đúng).</li>
+          </ul>
+        </div>
+
+        <!-- Quick Text Paste Option (Alternative to .docx upload for quick testing) -->
+        <details class="group border border-slate-200 rounded-xl bg-white overflow-hidden">
+          <summary class="px-4 py-3 text-xs font-bold text-slate-700 cursor-pointer hover:bg-slate-50 flex items-center justify-between select-none">
+            <span class="flex items-center gap-2">
+              <i data-lucide="clipboard-paste" class="w-4 h-4 text-blue-600"></i>
+              <span>Hoặc dán trực tiếp nội dung câu hỏi theo chuẩn Word để tạo bộ đề nhanh</span>
+            </span>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform"></i>
+          </summary>
+          <div class="p-4 border-t border-slate-200 space-y-3 bg-slate-50/50">
+            <div class="flex flex-col sm:flex-row gap-2">
+              <input type="text" id="rawQuizTitleInput" placeholder="Tên bộ đề (ví dụ: Bài 3 - Kiểm tra 15 phút)" class="flex-1 px-3 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
+              <button onclick="fillSampleRawText()" class="px-3 py-2 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl shrink-0">Điền nội dung mẫu</button>
+            </div>
+            <textarea id="rawQuizContentInput" rows="6" placeholder="Câu 1: Nội dung câu hỏi...&#10;A. Phương án A&#10;*B. Phương án B&#10;C. Phương án C&#10;D. Phương án D" class="w-full p-3 text-xs sm:text-sm font-mono border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"></textarea>
+            <div class="flex justify-end">
+              <button onclick="handleRawTextImport()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="check" class="w-4 h-4"></i>
+                <span>Phân tích & Tạo bộ đề</span>
+              </button>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2: VALIDATION ERRORS REPORT ==================== -->
+  <div id="validationErrorModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-red-200 overflow-hidden flex flex-col max-h-[85vh]">
+      <div class="px-6 py-4 bg-red-600 text-white flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <i data-lucide="alert-octagon" class="w-6 h-6 shrink-0"></i>
+          <div>
+            <h3 class="font-bold text-base">Phát hiện lỗi định dạng tệp đầu vào</h3>
+            <p id="errorModalFileName" class="text-xs text-red-100">Vui lòng kiểm tra và sửa các lỗi dưới đây trước khi nhập lại</p>
+          </div>
+        </div>
+        <button onclick="closeValidationErrorModal()" class="p-1.5 rounded-lg text-red-100 hover:text-white hover:bg-red-700">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto light-scroll space-y-4">
+        <div class="bg-red-50 border border-red-200 rounded-xl p-3.5 text-xs text-red-800 leading-relaxed">
+          Hệ thống <strong>không tự ý bỏ qua câu hỏi lỗi</strong> để đảm bảo tính toàn vẹn của bộ đề. Vui lòng chỉnh sửa tệp Word theo đúng vị trí được chỉ ra bên dưới:
+        </div>
+        <ul id="validationErrorList" class="space-y-2.5 text-xs sm:text-sm text-slate-800">
+          <!-- Populated dynamically -->
+        </ul>
+      </div>
+
+      <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between shrink-0">
+        <button onclick="closeValidationErrorModal(); openImportAssistantModal();" class="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+          <i data-lucide="help-circle" class="w-4 h-4"></i>
+          <span>Xem quy chuẩn định dạng</span>
+        </button>
+        <button onclick="closeValidationErrorModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold rounded-xl">
+          Đã hiểu
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 3: RENAME / DELETE / RESET DIALOG ==================== -->
+  <div id="dialogModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden p-6 space-y-4">
+      <div class="flex items-start justify-between gap-3">
+        <h3 id="dialogTitle" class="font-bold text-base text-slate-900">Tiêu đề hộp thoại</h3>
+        <button onclick="closeDialogModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="dialogBody" class="text-sm text-slate-600"></div>
+      <div id="dialogActions" class="flex items-center justify-end gap-2 pt-2"></div>
+    </div>
+  </div>
+
+  <!-- ==================== TOAST NOTIFICATION ==================== -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
+  <!-- ==================== APPLICATION JAVASCRIPT ==================== -->
+  <script>
+    /*************************************************************************
+     * 1. STATE MANAGEMENT & DEFAULT SAMPLE QUIZ SETS
+     *************************************************************************/
+    const STORAGE_KEY = 'QUIZ_MASTER_STORAGE_V1';
+
+    // Pre-loaded sample quiz sets so the user can test all features immediately
+    const DEFAULT_QUIZ_SETS = [
+      {
+        id: 'quiz_sample_1',
+        name: 'Bài 1 - Kiến thức Lập trình Web & Mạng',
+        fileName: 'Bai_1_Lap_Trinh_Web.docx',
+        createdAt: 'Hôm nay',
+        questions: [
+          {
+            number: 1,
+            text: 'Giao thức nào sau đây được sử dụng để truyền tải siêu văn bản bảo mật trên môi trường Internet?',
+            options: {
+              A: 'FTP (File Transfer Protocol)',
+              B: 'HTTP (HyperText Transfer Protocol)',
+              C: 'HTTPS (HyperText Transfer Protocol Secure)',
+              D: 'SMTP (Simple Mail Transfer Protocol)'
+            },
+            correctAnswer: 'C',
+            userAnswer: null
+          },
+          {
+            number: 2,
+            text: 'Trong HTML5, thẻ nào được sử dụng để định nghĩa phần điều hướng chính của trang web?',
+            options: {
+              A: '<header>',
+              B: '<nav>',
+              C: '<section>',
+              D: '<aside>'
+            },
+            correctAnswer: 'B',
+            userAnswer: null
+          },
+          {
+            number: 3,
+            text: 'Thuộc tính CSS nào giúp cố định bảng điều hướng câu hỏi ở một vị trí trên màn hình ngay cả khi người dùng cuộn trang?',
+            options: {
+              A: 'position: static;',
+              B: 'position: relative;',
+              C: 'position: fixed;',
+              D: 'display: inline-block;'
+            },
+            correctAnswer: 'C',
+            userAnswer: null
+          },
+          {
+            number: 4,
+            text: 'Phương thức JavaScript nào dùng để chuyển đổi một đối tượng (Object) thành chuỗi JSON để lưu vào localStorage?',
+            options: {
+              A: 'JSON.stringify()',
+              B: 'JSON.parse()',
+              C: 'Object.toString()',
+              D: 'JSON.toObject()'
+            },
+            correctAnswer: 'A',
+            userAnswer: null
+          },
+          {
+            number: 5,
+            text: '[Câu hỏi mẫu chưa gắn dấu * trong tệp Word] Theo bạn, hình thức lưu trữ dữ liệu nào phù hợp nhất cho ứng dụng Quiz Master mở rộng trong tương lai?',
+            options: {
+              A: 'Lưu trữ cục bộ trên trình duyệt (LocalStorage / IndexedDB)',
+              B: 'Đồng bộ đám mây thời gian thực (Firebase / Supabase)',
+              C: 'Kết hợp cả lưu cục bộ ngoại tuyến và xuất tệp HTML độc lập',
+              D: 'Lưu trên hệ thống máy chủ nội bộ trường học'
+            },
+            correctAnswer: null, // Demonstrates rule 5.2: Question without a correct answer set
+            userAnswer: null
+          },
+          {
+            number: 6,
+            text: 'Mã trạng thái HTTP (HTTP Status Code) nào biểu thị yêu cầu thành công (OK)?',
+            options: {
+              A: '200 OK',
+              B: '404 Not Found',
+              C: '500 Internal Server Error',
+              D: '301 Moved Permanently'
+            },
+            correctAnswer: 'A',
+            userAnswer: null
+          }
+        ]
+      },
+      {
+        id: 'quiz_sample_2',
+        name: 'Bài 2 - Cơ sở dữ liệu & Giải thuật',
+        fileName: 'Bai_2_CSDL_Giai_Thuat.docx',
+        createdAt: 'Hôm nay',
+        questions: [
+          {
+            number: 1,
+            text: 'Trong ngôn ngữ truy vấn SQL, câu lệnh nào dùng để trích xuất dữ liệu từ một bảng?',
+            options: {
+              A: 'UPDATE',
+              B: 'SELECT',
+              C: 'INSERT INTO',
+              D: 'DELETE'
+            },
+            correctAnswer: 'B',
+            userAnswer: null
+          },
+          {
+            number: 2,
+            text: 'Độ phức tạp thời gian trung bình của thuật toán Tìm kiếm nhị phân (Binary Search) trên mảng đã sắp xếp có n phần tử là bao nhiêu?',
+            options: {
+              A: 'O(n)',
+              B: 'O(n²)',
+              C: 'O(log n)',
+              D: 'O(1)'
+            },
+            correctAnswer: 'C',
+            userAnswer: null
+          },
+          {
+            number: 3,
+            text: 'Cấu trúc dữ liệu Ngăn xếp (Stack) hoạt động theo nguyên tắc nào?',
+            options: {
+              A: 'FIFO (First In, First Out - Vào trước ra trước)',
+              B: 'LIFO (Last In, First Out - Vào sau ra trước)',
+              C: 'Truy cập ngẫu nhiên theo chỉ số',
+              D: 'Ưu tiên phần tử có giá trị lớn nhất'
+            },
+            correctAnswer: 'B',
+            userAnswer: null
+          },
+          {
+            number: 4,
+            text: 'Khóa chính (Primary Key) trong một bảng cơ sở dữ liệu quan hệ có đặc điểm gì?',
+            options: {
+              A: 'Có thể chứa nhiều giá trị NULL',
+              B: 'Được phép trùng lặp giá trị giữa các bản ghi',
+              C: 'Xác định duy nhất mỗi bản ghi và không được chứa giá trị NULL',
+              D: 'Chỉ được phép dùng kiểu dữ liệu số nguyên'
+            },
+            correctAnswer: 'C',
+            userAnswer: null
+          },
+          {
+            number: 5,
+            text: 'Câu hỏi tự luyện (chưa thiết lập đáp án đúng): Hệ quản trị cơ sở dữ liệu nào bạn đang sử dụng trong đồ án hiện tại?',
+            options: {
+              A: 'PostgreSQL',
+              B: 'MySQL / MariaDB',
+              C: 'Microsoft SQL Server',
+              D: 'SQLite / MongoDB'
+            },
+            correctAnswer: null,
+            userAnswer: null
+          }
+        ]
+      }
+    ];
+
+    let appState = {
+      quizzes: [],
+      activeQuizId: null,
+      sidebarCollapsed: false,
+      autoDownloadHtml: true
+    };
+
+    // Load state from localStorage or initialize with defaults
+    function loadAppState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.quizzes) && parsed.quizzes.length > 0) {
+            appState.quizzes = parsed.quizzes;
+            appState.activeQuizId = parsed.activeQuizId || parsed.quizzes[0].id;
+            appState.sidebarCollapsed = !!parsed.sidebarCollapsed;
+            appState.autoDownloadHtml = parsed.autoDownloadHtml !== undefined ? parsed.autoDownloadHtml : true;
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Không thể đọc dữ liệu từ localStorage, sử dụng bộ đề mặc định.', e);
+      }
+      appState.quizzes = JSON.parse(JSON.stringify(DEFAULT_QUIZ_SETS));
+      appState.activeQuizId = appState.quizzes[0].id;
+      saveAppState();
+    }
+
+    function saveAppState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (e) {
+        console.error('Lỗi lưu localStorage:', e);
+      }
+    }
+
+    function getActiveQuiz() {
+      return appState.quizzes.find(q => q.id === appState.activeQuizId) || appState.quizzes[0] || null;
+    }
+
+    /*************************************************************************
+     * 2. SIDEBAR COLLAPSE / EXPAND & RESPONSIVE DRAWER
+     *************************************************************************/
+    function applySidebarState() {
+      const sidebar = document.getElementById('sidebar');
+      const expandedElements = document.querySelectorAll('.sidebar-expanded-only');
+      const navGrid = document.getElementById('questionNavGrid');
+      const collapseIcon = document.getElementById('collapseIcon');
+      const autoCheckbox = document.getElementById('autoDownloadHtmlCheckbox');
+
+      if (autoCheckbox) {
+        autoCheckbox.checked = appState.autoDownloadHtml;
+      }
+
+      if (appState.sidebarCollapsed) {
+        sidebar.classList.remove('w-80');
+        sidebar.classList.add('w-20');
+        expandedElements.forEach(el => el.classList.add('hidden'));
+        // In collapsed mode, make the question navigator a 2-column compact grid so it stays usable
+        navGrid.classList.remove('grid-cols-5');
+        navGrid.classList.add('grid-cols-2');
+        if (collapseIcon) collapseIcon.setAttribute('data-lucide', 'panel-right-close');
+      } else {
+        sidebar.classList.remove('w-20');
+        sidebar.classList.add('w-80');
+        expandedElements.forEach(el => el.classList.remove('hidden'));
+        navGrid.classList.remove('grid-cols-2');
+        navGrid.classList.add('grid-cols-5');
+        if (collapseIcon) collapseIcon.setAttribute('data-lucide', 'panel-left-close');
+      }
+      lucide.createIcons();
+    }
+
+    function toggleSidebarCollapse() {
+      appState.sidebarCollapsed = !appState.sidebarCollapsed;
+      saveAppState();
+      applySidebarState();
+      renderSidebarQuizList();
+    }
+
+    function openMobileSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('mobileOverlay');
+      // Ensure expanded look on mobile drawer
+      if (appState.sidebarCollapsed) {
+        appState.sidebarCollapsed = false;
+        applySidebarState();
+      }
+      sidebar.classList.remove('-translate-x-full');
+      overlay.classList.remove('hidden');
+    }
+
+    function closeMobileSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('mobileOverlay');
+      sidebar.classList.add('-translate-x-full');
+      overlay.classList.add('hidden');
+    }
+
+    function toggleAutoDownloadSetting(checked) {
+      appState.autoDownloadHtml = checked;
+      saveAppState();
+      showToast(
+        checked
+          ? 'Đã bật tự động tải tệp HTML độc lập ngay sau khi nhập Word.'
+          : 'Đã tắt tự động tải tệp HTML. Bạn vẫn có thể nhấn "Xuất HTML độc lập" bất kỳ lúc nào.',
+        'info'
+      );
+    }
+
+    /*************************************************************************
+     * 3. RENDERING SIDEBAR, QUESTION NAVIGATOR & MAIN QUIZ VIEW
+     *************************************************************************/
+    function renderAll() {
+      applySidebarState();
+      renderSidebarQuizList();
+      renderActiveQuizHeaderAndStats();
+      renderQuestionNavigator();
+      renderQuestionsList();
+      lucide.createIcons();
+    }
+
+    function renderSidebarQuizList() {
+      const container = document.getElementById('quizSetListContainer');
+      const countBadge = document.getElementById('quizCountBadge');
+      countBadge.textContent = appState.quizzes.length;
+
+      if (appState.quizzes.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-6 px-2 text-xs text-slate-500">
+            Chưa có bộ đề nào. Nhấn <strong>New</strong> để nhập tệp Word.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = appState.quizzes.map((quiz, idx) => {
+        const isActive = quiz.id === appState.activeQuizId;
+        const totalQ = quiz.questions.length;
+        const answeredQ = quiz.questions.filter(q => q.userAnswer !== null).length;
+
+        if (appState.sidebarCollapsed) {
+          // Compact icon representation when sidebar is collapsed
+          return `
+            <button
+              onclick="selectQuizSet('${quiz.id}')"
+              title="${escapeHtml(quiz.name)} (${answeredQ}/${totalQ} câu)"
+              class="w-full py-2.5 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+                isActive
+                  ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30'
+                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              }"
+            >
+              <span class="text-xs font-bold">B${idx + 1}</span>
+              <span class="text-[9px] opacity-80">${answeredQ}/${totalQ}</span>
+            </button>
+          `;
+        }
+
+        return `
+          <div
+            onclick="selectQuizSet('${quiz.id}')"
+            class="group relative flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
+              isActive
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                : 'text-slate-300 hover:bg-slate-800/90 hover:text-white'
+            }"
+          >
+            <div class="flex items-center gap-2.5 min-w-0 flex-1">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                isActive ? 'bg-blue-700 text-white' : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
+              }">
+                ${idx + 1}
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-xs sm:text-sm font-semibold truncate">${escapeHtml(quiz.name)}</p>
+                <p class="text-[11px] ${isActive ? 'text-blue-100' : 'text-slate-400'}">
+                  ${answeredQ}/${totalQ} câu đã chọn
+                </p>
+              </div>
+            </div>
+
+            <!-- Action icons: Export HTML, Rename, Delete -->
+            <div class="flex items-center gap-0.5 opacity-85 group-hover:opacity-100 shrink-0" onclick="event.stopPropagation()">
+              <button
+                onclick="exportQuizStandaloneHTMLById('${quiz.id}')"
+                title="Tải tệp HTML độc lập của bộ đề này"
+                class="p-1.5 rounded-lg ${isActive ? 'hover:bg-blue-500 text-white' : 'hover:bg-slate-700 text-slate-400 hover:text-white'} transition-colors"
+              >
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              </button>
+              <button
+                onclick="openRenameQuizModal('${quiz.id}')"
+                title="Đổi tên bộ đề"
+                class="p-1.5 rounded-lg ${isActive ? 'hover:bg-blue-500 text-white' : 'hover:bg-slate-700 text-slate-400 hover:text-white'} transition-colors"
+              >
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+              </button>
+              <button
+                onclick="openDeleteQuizModal('${quiz.id}')"
+                title="Xóa bộ đề"
+                class="p-1.5 rounded-lg ${isActive ? 'hover:bg-red-500 text-white' : 'hover:bg-red-500/20 text-slate-400 hover:text-red-400'} transition-colors"
+              >
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function computeQuizStatistics(quiz) {
+      if (!quiz || !quiz.questions) {
+        return { total: 0, answered: 0, correct: 0, wrong: 0, unanswered: 0, gradableTotal: 0, accuracy: 0 };
+      }
+      const total = quiz.questions.length;
+      let answered = 0;
+      let correct = 0;
+      let wrong = 0;
+      let gradableTotal = 0;
+
+      for (const q of quiz.questions) {
+        const hasKey = q.correctAnswer === 'A' || q.correctAnswer === 'B' || q.correctAnswer === 'C' || q.correctAnswer === 'D';
+        if (hasKey) {
+          gradableTotal++;
+        }
+        if (q.userAnswer) {
+          answered++;
+          // Rule 5.1 & 5.2: Only count into correct/wrong if question has a configured correctAnswer
+          if (hasKey) {
+            if (q.userAnswer === q.correctAnswer) {
+              correct++;
+            } else {
+              wrong++;
+            }
+          }
+        }
+      }
+
+      const unanswered = total - answered;
+      // Rule 5.3: Accuracy % is calculated ONLY on questions that have a correct answer set
+      const accuracy = gradableTotal > 0 ? Math.round((correct / gradableTotal) * 100) : 0;
+
+      return { total, answered, correct, wrong, unanswered, gradableTotal, accuracy };
+    }
+
+    function renderActiveQuizHeaderAndStats() {
+      const quiz = getActiveQuiz();
+      const titleEl = document.getElementById('activeQuizTitle');
+      const metaEl = document.getElementById('activeQuizMeta');
+
+      if (!quiz) {
+        titleEl.textContent = 'Chưa có bộ đề nào được chọn';
+        metaEl.textContent = 'Hãy nhấn nút "New (Nhập Word)" ở thanh bên trái để bắt đầu';
+        document.getElementById('statTotal').textContent = '0';
+        document.getElementById('statAnswered').textContent = '0';
+        document.getElementById('statCorrect').textContent = '0';
+        document.getElementById('statWrong').textContent = '0';
+        document.getElementById('statUnanswered').textContent = '0';
+        document.getElementById('statAccuracy').textContent = '0%';
+        return;
+      }
+
+      const stats = computeQuizStatistics(quiz);
+      const unconfiguredCount = stats.total - stats.gradableTotal;
+
+      titleEl.textContent = quiz.name;
+      metaEl.textContent = `${stats.total} câu hỏi (${stats.gradableTotal} câu có đáp án chấm điểm${unconfiguredCount > 0 ? `, ${unconfiguredCount} câu chưa thiết lập đáp án` : ''}) • Tệp gốc: ${quiz.fileName || 'Word (.docx)'}`;
+
+      document.getElementById('statTotal').textContent = stats.total;
+      document.getElementById('statAnswered').textContent = stats.answered;
+      document.getElementById('statCorrect').textContent = stats.correct;
+      document.getElementById('statWrong').textContent = stats.wrong;
+      document.getElementById('statUnanswered').textContent = stats.unanswered;
+      document.getElementById('statAccuracy').textContent = `${stats.accuracy}%`;
+      document.getElementById('navProgressMini').textContent = `${stats.answered}/${stats.total}`;
+    }
+
+    /**
+     * Rule 4.3: Question Navigator color rules:
+     * - White: unanswered OR question has no correct answer configured (correctAnswer === null)
+     * - Green: answered correctly
+     * - Red: answered incorrectly
+     */
+    function renderQuestionNavigator() {
+      const grid = document.getElementById('questionNavGrid');
+      const quiz = getActiveQuiz();
+
+      if (!quiz || quiz.questions.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center text-[11px] text-slate-500 py-3">Trống</div>`;
+        return;
+      }
+
+      grid.innerHTML = quiz.questions.map((q, index) => {
+        const hasKey = ['A', 'B', 'C', 'D'].includes(q.correctAnswer);
+        let cellClasses = 'bg-white text-slate-900 border-slate-300 hover:bg-blue-50 hover:border-blue-400';
+        let statusTitle = `Câu ${q.number}: Chưa trả lời`;
+
+        if (q.userAnswer) {
+          if (!hasKey) {
+            // Rule 5.2: Question without a correct answer keeps its navigator cell WHITE
+            cellClasses = 'bg-white text-slate-900 border-slate-300 ring-2 ring-blue-400/60';
+            statusTitle = `Câu ${q.number}: Đã chọn ${q.userAnswer} (Câu hỏi chưa thiết lập đáp án đúng)`;
+          } else if (q.userAnswer === q.correctAnswer) {
+            // Green: Answered correctly
+            cellClasses = 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-500 shadow-xs';
+            statusTitle = `Câu ${q.number}: Chính xác (${q.userAnswer})`;
+          } else {
+            // Red: Answered incorrectly
+            cellClasses = 'bg-red-600 text-white border-red-500 hover:bg-red-500 shadow-xs';
+            statusTitle = `Câu ${q.number}: Chưa chính xác (Chọn ${q.userAnswer}, Đáp án: ${q.correctAnswer})`;
+          }
+        } else if (!hasKey) {
+          statusTitle = `Câu ${q.number}: Chưa trả lời (Câu hỏi chưa thiết lập đáp án đúng)`;
+        }
+
+        return `
+          <button
+            onclick="scrollToQuestion(${index})"
+            title="${statusTitle}"
+            class="h-8 rounded-lg border font-bold text-xs flex items-center justify-center transition-all cursor-pointer select-none ${cellClasses}"
+          >
+            ${q.number}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderQuestionsList() {
+      const wrapper = document.getElementById('questionsListWrapper');
+      const quiz = getActiveQuiz();
+
+      if (!quiz || quiz.questions.length === 0) {
+        wrapper.innerHTML = `
+          <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-4 shadow-xs">
+            <div class="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+              <i data-lucide="file-text" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-800">Chưa có câu hỏi nào để hiển thị</h3>
+            <p class="text-sm text-slate-500 max-w-md mx-auto">
+              Nhấn nút <strong>New (Nhập Word)</strong> ở thanh bên trái để tải lên tệp <code>.docx</code> hoặc tải tệp mẫu để trải nghiệm.
+            </p>
+            <button onclick="openImportAssistantModal()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl shadow-sm">
+              Nhập bộ đề ngay
+            </button>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      wrapper.innerHTML = quiz.questions.map((q, qIndex) => {
+        return buildQuestionCardHTML(q, qIndex);
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function buildQuestionCardHTML(q, qIndex) {
+      const hasKey = ['A', 'B', 'C', 'D'].includes(q.correctAnswer);
+      const isAnswered = q.userAnswer !== null;
+      const isCorrect = hasKey && isAnswered && q.userAnswer === q.correctAnswer;
+      const isWrong = hasKey && isAnswered && q.userAnswer !== q.correctAnswer;
+
+      // Card top border accent based on state
+      let cardBorderClass = 'border-slate-200/90';
+      let badgeClass = 'bg-blue-600 text-white';
+
+      if (isCorrect) {
+        cardBorderClass = 'border-emerald-300 ring-1 ring-emerald-100';
+        badgeClass = 'bg-emerald-600 text-white';
+      } else if (isWrong) {
+        cardBorderClass = 'border-red-300 ring-1 ring-red-100';
+        badgeClass = 'bg-red-600 text-white';
+      }
+
+      const optionsHTML = ['A', 'B', 'C', 'D'].map(letter => {
+        const optionText = q.options[letter] || '';
+        const isSelected = q.userAnswer === letter;
+        const isThisCorrectOption = hasKey && q.correctAnswer === letter;
+
+        let optionCardStyle = 'bg-white border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 text-slate-800';
+        let letterBadgeStyle = 'bg-slate-100 text-slate-700 border-slate-200 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600';
+        let rightIconHTML = '';
+
+        if (isAnswered) {
+          if (!hasKey) {
+            // Question has no correct answer configured -> neutral blue highlight for chosen option
+            if (isSelected) {
+              optionCardStyle = 'bg-blue-50/80 border-blue-500 ring-1 ring-blue-500 text-slate-900 font-medium';
+              letterBadgeStyle = 'bg-blue-600 text-white border-blue-600';
+              rightIconHTML = `<span class="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md shrink-0">Đã chọn</span>`;
+            }
+          } else {
+            // Question has a correct answer configured
+            if (isSelected && isCorrect) {
+              optionCardStyle = 'bg-emerald-50/90 border-emerald-500 ring-1 ring-emerald-500 text-emerald-950 font-medium';
+              letterBadgeStyle = 'bg-emerald-600 text-white border-emerald-600';
+              rightIconHTML = `<i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600 shrink-0"></i>`;
+            } else if (isSelected && isWrong) {
+              optionCardStyle = 'bg-red-50/90 border-red-500 ring-1 ring-red-500 text-red-950 font-medium';
+              letterBadgeStyle = 'bg-red-600 text-white border-red-600';
+              rightIconHTML = `<i data-lucide="x-circle" class="w-5 h-5 text-red-600 shrink-0"></i>`;
+            } else if (isWrong && isThisCorrectOption) {
+              // Reveal the correct option when user chose wrong
+              optionCardStyle = 'bg-emerald-50/60 border-emerald-400 border-dashed text-emerald-950 font-medium';
+              letterBadgeStyle = 'bg-emerald-600 text-white border-emerald-600';
+              rightIconHTML = `<span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md shrink-0">Đáp án đúng</span>`;
+            }
+          }
+        }
+
+        return `
+          <div
+            onclick="handleSelectOption(${qIndex}, '${letter}')"
+            role="button"
+            tabindex="0"
+            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();handleSelectOption(${qIndex}, '${letter}');}"
+            class="group relative rounded-xl border p-3.5 sm:p-4 transition-all cursor-pointer flex items-start gap-3.5 select-none ${optionCardStyle}"
+          >
+            <span class="w-8 h-8 rounded-lg border font-bold text-sm flex items-center justify-center shrink-0 transition-colors ${letterBadgeStyle}">
+              ${letter}
+            </span>
+            <div class="flex-1 text-sm sm:text-[15px] leading-relaxed whitespace-pre-line break-words pt-0.5">${escapeHtml(optionText)}</div>
+            ${rightIconHTML}
+          </div>
+        `;
+      }).join('');
+
+      // Immediate feedback banner (Rules 5.1 & 5.2)
+      let feedbackBannerHTML = '';
+      if (isAnswered) {
+        if (!hasKey) {
+          feedbackBannerHTML = `
+            <div class="mt-4 rounded-xl bg-amber-50 border border-amber-200/90 px-4 py-3 flex flex-wrap items-center justify-between gap-2 text-amber-900">
+              <div class="flex items-center gap-2 text-xs sm:text-sm font-semibold">
+                <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600 shrink-0"></i>
+                <span>Câu hỏi chưa được thiết lập đáp án đúng</span>
+              </div>
+              <div class="flex items-center gap-1 text-xs">
+                <span class="text-amber-700 mr-1">Thiết lập nhanh đáp án đúng:</span>
+                ${['A', 'B', 'C', 'D'].map(l => `
+                  <button onclick="setQuestionCorrectAnswer(${qIndex}, '${l}')" class="px-2 py-0.5 rounded bg-white hover:bg-amber-600 hover:text-white border border-amber-300 font-bold transition-colors cursor-pointer">${l}</button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        } else if (isCorrect) {
+          feedbackBannerHTML = `
+            <div class="mt-4 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 flex items-center justify-between gap-2 text-emerald-800">
+              <div class="flex items-center gap-2 text-xs sm:text-sm font-bold">
+                <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600 shrink-0"></i>
+                <span>Chính xác!</span>
+              </div>
+              <span class="text-xs font-medium text-emerald-700">Đáp án đúng: <strong>${q.correctAnswer}</strong></span>
+            </div>
+          `;
+        } else if (isWrong) {
+          feedbackBannerHTML = `
+            <div class="mt-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 flex flex-wrap items-center justify-between gap-2 text-red-800">
+              <div class="flex items-center gap-2 text-xs sm:text-sm font-bold">
+                <i data-lucide="x-circle" class="w-5 h-5 text-red-600 shrink-0"></i>
+                <span>Chưa chính xác!</span>
+              </div>
+              <span class="text-xs sm:text-sm font-semibold bg-white px-2.5 py-1 rounded-lg border border-red-200 text-red-700">
+                Đáp án đúng là: <strong>${q.correctAnswer}. ${escapeHtml(q.options[q.correctAnswer])}</strong>
+              </span>
+            </div>
+          `;
+        }
+      } else if (!hasKey) {
+        // Subtle badge before user selects anything on an unconfigured question
+        feedbackBannerHTML = `
+          <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 pt-2 border-t border-slate-100">
+            <span class="flex items-center gap-1.5 text-amber-700 font-medium">
+              <i data-lucide="info" class="w-3.5 h-3.5"></i>
+              <span>Câu hỏi chưa có dấu * (chưa thiết lập đáp án đúng)</span>
+            </span>
+            <div class="flex items-center gap-1">
+              <span>Đặt đáp án:</span>
+              ${['A', 'B', 'C', 'D'].map(l => `
+                <button onclick="setQuestionCorrectAnswer(${qIndex}, '${l}')" class="px-2 py-0.5 rounded bg-slate-100 hover:bg-blue-600 hover:text-white font-semibold transition-colors cursor-pointer">${l}</button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <article id="question-card-${qIndex}" class="bg-white rounded-2xl border ${cardBorderClass} shadow-xs p-5 sm:p-6 transition-all">
+          <!-- Question Header -->
+          <div class="flex items-start gap-3.5 mb-4">
+            <span class="px-3 py-1 rounded-xl font-bold text-xs sm:text-sm shrink-0 shadow-2xs ${badgeClass}">
+              Câu ${q.number}
+            </span>
+            <h3 class="text-base sm:text-[17px] font-semibold text-slate-900 leading-relaxed whitespace-pre-line break-words flex-1 pt-0.5">${escapeHtml(q.text)}</h3>
+          </div>
+
+          <!-- 4 Option Cards (A, B, C, D) -->
+          <div class="space-y-2.5">
+            ${optionsHTML}
+          </div>
+
+          <!-- Instant Grading Feedback Banner -->
+          ${feedbackBannerHTML}
+        </article>
+      `;
+    }
+
+    /*************************************************************************
+     * 4. INTERACTION: ANSWERING, SCROLLING, RENAME, DELETE, RESET
+     *************************************************************************/
+    function handleSelectOption(qIndex, letter) {
+      const quiz = getActiveQuiz();
+      if (!quiz || !quiz.questions[qIndex]) return;
+
+      // Update user's answer (Users are allowed to change their choice anytime - Rule 5.1)
+      quiz.questions[qIndex].userAnswer = letter;
+      saveAppState();
+
+      // Re-render only the clicked question card + stats + navigator for snappy UX
+      const cardEl = document.getElementById(`question-card-${qIndex}`);
+      if (cardEl) {
+        cardEl.outerHTML = buildQuestionCardHTML(quiz.questions[qIndex], qIndex);
+      }
+      renderActiveQuizHeaderAndStats();
+      renderQuestionNavigator();
+      renderSidebarQuizList();
+      lucide.createIcons();
+    }
+
+    function setQuestionCorrectAnswer(qIndex, letter) {
+      const quiz = getActiveQuiz();
+      if (!quiz || !quiz.questions[qIndex]) return;
+      quiz.questions[qIndex].correctAnswer = letter;
+      saveAppState();
+
+      const cardEl = document.getElementById(`question-card-${qIndex}`);
+      if (cardEl) {
+        cardEl.outerHTML = buildQuestionCardHTML(quiz.questions[qIndex], qIndex);
+      }
+      renderActiveQuizHeaderAndStats();
+      renderQuestionNavigator();
+      lucide.createIcons();
+      showToast(`Đã thiết lập đáp án đúng cho Câu ${quiz.questions[qIndex].number} là ${letter}.`, 'success');
+    }
+
+    function scrollToQuestion(qIndex) {
+      const cardEl = document.getElementById(`question-card-${qIndex}`);
+      if (!cardEl) return;
+
+      // On mobile screens, close drawer after clicking a question number
+      if (window.innerWidth < 1024) {
+        closeMobileSidebar();
+      }
+
+      cardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      cardEl.classList.remove('question-focus-pulse');
+      void cardEl.offsetWidth; // trigger reflow
+      cardEl.classList.add('question-focus-pulse');
+    }
+
+    function selectQuizSet(quizId) {
+      appState.activeQuizId = quizId;
+      saveAppState();
+      renderAll();
+      // Scroll main area back to top
+      const container = document.getElementById('questionsScrollContainer');
+      if (container) container.scrollTo({ top: 0, behavior: 'smooth' });
+      if (window.innerWidth < 1024) {
+        closeMobileSidebar();
+      }
+    }
+
+    // Reset current quiz progress ("Làm lại" button - Rule 5.3)
+    function openResetConfirmModal() {
+      const quiz = getActiveQuiz();
+      if (!quiz) return;
+
+      openDialogModal({
+        title: 'Làm lại bộ đề này?',
+        bodyHTML: `Toàn bộ lựa chọn đã trả lời, màu ô điều hướng và số liệu thống kê của bộ đề <strong>"${escapeHtml(quiz.name)}"</strong> sẽ được đặt lại về ban đầu. Nội dung câu hỏi và đáp án được giữ nguyên.`,
+        actionsHTML: `
+          <button onclick="closeDialogModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs sm:text-sm font-semibold">Hủy</button>
+          <button onclick="confirmResetActiveQuiz()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-semibold cursor-pointer">Đồng ý làm lại</button>
+        `
+      });
+    }
+
+    function confirmResetActiveQuiz() {
+      const quiz = getActiveQuiz();
+      if (!quiz) return;
+      quiz.questions.forEach(q => {
+        q.userAnswer = null;
+      });
+      saveAppState();
+      closeDialogModal();
+      renderAll();
+      const container = document.getElementById('questionsScrollContainer');
+      if (container) container.scrollTo({ top: 0, behavior: 'smooth' });
+      showToast(`Đã đặt lại kết quả làm bài của "${quiz.name}".`, 'info');
+    }
+
+    // Rename quiz set
+    function promptRenameActiveQuiz() {
+      const quiz = getActiveQuiz();
+      if (quiz) openRenameQuizModal(quiz.id);
+    }
+
+    function openRenameQuizModal(quizId) {
+      const quiz = appState.quizzes.find(q => q.id === quizId);
+      if (!quiz) return;
+
+      openDialogModal({
+        title: 'Đổi tên bộ đề',
+        bodyHTML: `
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">Tên bộ đề mới:</label>
+          <input id="renameQuizInput" type="text" value="${escapeHtml(quiz.name)}" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-slate-900" />
+        `,
+        actionsHTML: `
+          <button onclick="closeDialogModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs sm:text-sm font-semibold">Hủy</button>
+          <button onclick="confirmRenameQuiz('${quiz.id}')" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-semibold cursor-pointer">Lưu tên mới</button>
+        `
+      });
+
+      setTimeout(() => {
+        const input = document.getElementById('renameQuizInput');
+        if (input) {
+          input.focus();
+          input.select();
+          input.onkeydown = (e) => {
+            if (e.key === 'Enter') confirmRenameQuiz(quiz.id);
+          };
+        }
+      }, 50);
+    }
+
+    function confirmRenameQuiz(quizId) {
+      const input = document.getElementById('renameQuizInput');
+      if (!input) return;
+      const newName = input.value.trim();
+      if (!newName) {
+        showToast('Tên bộ đề không được để trống!', 'error');
+        return;
+      }
+      const quiz = appState.quizzes.find(q => q.id === quizId);
+      if (quiz) {
+        quiz.name = newName;
+        saveAppState();
+        renderAll();
+        showToast('Đã cập nhật tên bộ đề.', 'success');
+      }
+      closeDialogModal();
+    }
+
+    // Delete quiz set
+    function openDeleteQuizModal(quizId) {
+      const quiz = appState.quizzes.find(q => q.id === quizId);
+      if (!quiz) return;
+
+      openDialogModal({
+        title: 'Xóa bộ đề?',
+        bodyHTML: `Bạn có chắc chắn muốn xóa bộ đề <strong>"${escapeHtml(quiz.name)}"</strong> khỏi danh sách quản lý? <br/><span class="text-xs text-slate-500 mt-1 block">(Lưu ý: Các tệp HTML độc lập đã tải về máy tính của bạn sẽ không bị ảnh hưởng).</span>`,
+        actionsHTML: `
+          <button onclick="closeDialogModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs sm:text-sm font-semibold">Hủy</button>
+          <button onclick="confirmDeleteQuiz('${quiz.id}')" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs sm:text-sm font-semibold cursor-pointer">Xóa bộ đề</button>
+        `
+      });
+    }
+
+    function confirmDeleteQuiz(quizId) {
+      appState.quizzes = appState.quizzes.filter(q => q.id !== quizId);
+      if (appState.activeQuizId === quizId) {
+        appState.activeQuizId = appState.quizzes[0] ? appState.quizzes[0].id : null;
+      }
+      saveAppState();
+      closeDialogModal();
+      renderAll();
+      showToast('Đã xóa bộ đề khỏi danh sách.', 'info');
+    }
+
+    /*************************************************************************
+     * 5. WORD (.DOCX) PARSER & STRICT VALIDATOR (SECTION 2 & 2.1)
+     *************************************************************************/
+    function triggerDirectWordUpload() {
+      const fileInput = document.getElementById('docxFileInput');
+      if (fileInput) {
+        fileInput.value = '';
+        fileInput.click();
+      }
+    }
+
+    // Setup file input & drag-and-drop listeners
+    document.getElementById('docxFileInput').addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      await processUploadedDocxFile(file);
+    });
+
+    const dropZone = document.getElementById('dropZone');
+    if (dropZone) {
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-blue-600', 'bg-blue-100/60');
+      });
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('border-blue-600', 'bg-blue-100/60');
+      });
+      dropZone.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-blue-600', 'bg-blue-100/60');
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) await processUploadedDocxFile(file);
+      });
+    }
+
+    /**
+     * Reads a .docx file using JSZip by extracting `word/document.xml`,
+     * preserving paragraphs (<w:p>), line breaks (<w:br/>), tabs, and Vietnamese Unicode text.
+     */
+    async function extractLinesFromDocx(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      const zip = await JSZip.loadAsync(arrayBuffer);
+      const docXmlFile = zip.file('word/document.xml');
+
+      if (!docXmlFile) {
+        throw new Error('Tệp không đúng cấu trúc Word (.docx) hợp lệ (thiếu word/document.xml).');
+      }
+
+      const xmlText = await docXmlFile.async('string');
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
+
+      const paragraphs = xmlDoc.getElementsByTagName('w:p');
+      const lines = [];
+
+      for (let i = 0; i < paragraphs.length; i++) {
+        const p = paragraphs[i];
+        let pText = '';
+        const childNodes = p.getElementsByTagName('*');
+
+        for (let j = 0; j < childNodes.length; j++) {
+          const node = childNodes[j];
+          if (node.tagName === 'w:t') {
+            pText += node.textContent || '';
+          } else if (node.tagName === 'w:br' || node.tagName === 'w:cr') {
+            pText += '\n';
+          } else if (node.tagName === 'w:tab') {
+            pText += '\t';
+          }
+        }
+
+        // Split by internal line breaks (<w:br/>) so inline options or multiline segments are processed cleanly
+        const subLines = pText.split(/\r?\n/);
+        for (const sub of subLines) {
+          lines.push(sub);
+        }
+      }
+
+      return lines;
+    }
+
+    /**
+     * Pre-processes lines to also split inline options if a user wrote:
+     * "A. Phương án A   B. Phương án B   *C. Phương án C   D. Phương án D" on the same paragraph line
+     */
+    function normalizeInputLines(rawLines) {
+      const normalized = [];
+      for (let line of rawLines) {
+        const trimmed = line.replace(/\u00A0/g, ' ').trim();
+        if (!trimmed) continue;
+
+        // If a single line contains multiple options separated by spaces/tabs (e.g., "A. ... *B. ..."), split them
+        const splitInline = trimmed.split(/(?=\s+(?:\*[A-Da-d]|[A-Da-d])[\.\)]\s+)/g);
+        for (const part of splitInline) {
+          const cleanPart = part.trim();
+          if (cleanPart) normalized.push(cleanPart);
+        }
+      }
+      return normalized;
+    }
+
+    /**
+     * Strict Parser & Validator according to Section 2 & 2.1 of the specification:
+     * - Question starts with: `Câu [số]:`
+     * - 4 options: A, B, C, D (with optional `*` in front of the correct option letter, e.g. `*C.`)
+     * - Supports multiline question text and multiline option text
+     * - Reports specific errors with question numbers:
+     *   + Unrecognized line before any question starts
+     *   + Empty question text
+     *   + Missing one or more options A, B, C, D
+     *   + Duplicate options
+     *   + Empty option text
+     *   + More than one option marked with `*` in the same question
+     */
+    function parseAndValidateQuizLines(rawLines) {
+      const lines = normalizeInputLines(rawLines);
+      const errors = [];
+      const questions = [];
+
+      if (lines.length === 0) {
+        errors.push('Tệp rỗng hoặc không chứa nội dung văn bản nào.');
+        return { valid: false, errors, questions: [] };
+      }
+
+      const questionStartRegex = /^Câu\s+(\d+)\s*[:\.\-]\s*(.*)$/i;
+      const optionStartRegex = /^(\*)?\s*([A-Da-d])\s*[\.\)\:]\s*(.*)$/;
+
+      let currentQ = null;
+      let currentOptionKey = null;
+
+      function finalizeAndValidateQuestion(q) {
+        const qLabel = `Câu ${q.number}`;
+
+        // 1. Check question content
+        if (!q.text || q.text.trim() === '') {
+          errors.push(`${qLabel}: Nội dung câu hỏi bị rỗng.`);
+        }
+
+        // 2. Check missing options A, B, C, D
+        const requiredKeys = ['A', 'B', 'C', 'D'];
+        const missingKeys = requiredKeys.filter(k => !(k in q.options));
+        if (missingKeys.length > 0) {
+          errors.push(`${qLabel}: Thiếu phương án ${missingKeys.join(', ')}. (Mỗi câu hỏi bắt buộc có đủ 4 phương án A, B, C, D).`);
+        }
+
+        // 3. Check duplicate options
+        if (q.duplicateKeys.length > 0) {
+          const uniqueDup = [...new Set(q.duplicateKeys)];
+          errors.push(`${qLabel}: Phương án ${uniqueDup.join(', ')} bị lặp lại nhiều lần.`);
+        }
+
+        // 4. Check empty option content
+        for (const k of requiredKeys) {
+          if (k in q.options && (!q.options[k] || q.options[k].trim() === '')) {
+            errors.push(`${qLabel}: Nội dung phương án ${k} bị rỗng.`);
+          }
+        }
+
+        // 5. Check multiple '*' markers
+        if (q.markedCorrectList.length > 1) {
+          errors.push(
+            `${qLabel}: Có ${q.markedCorrectList.length} phương án được đánh dấu * (${q.markedCorrectList.map(x => '*' + x).join(', ')}). Mỗi câu hỏi chỉ được có tối đa 1 đáp án đúng.`
+          );
+        }
+
+        questions.push({
+          number: q.number,
+          text: (q.text || '').trim(),
+          options: {
+            A: (q.options.A || '').trim(),
+            B: (q.options.B || '').trim(),
+            C: (q.options.C || '').trim(),
+            D: (q.options.D || '').trim()
+          },
+          correctAnswer: q.markedCorrectList.length === 1 ? q.markedCorrectList[0] : null,
+          userAnswer: null
+        });
+      }
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const qMatch = line.match(questionStartRegex);
+
+        if (qMatch) {
+          if (currentQ) {
+            finalizeAndValidateQuestion(currentQ);
+          }
+          currentQ = {
+            number: parseInt(qMatch[1], 10),
+            text: qMatch[2] || '',
+            options: {},
+            markedCorrectList: [],
+            duplicateKeys: []
+          };
+          currentOptionKey = null;
+          continue;
+        }
+
+        // Check if someone wrote "Câu:" without a number
+        if (/^Câu\s*[:\.\-]/i.test(line)) {
+          errors.push(`Dòng "${line.slice(0, 50)}...": Thiếu số thứ tự câu hỏi sau chữ "Câu" (Định dạng đúng: "Câu 1: ...").`);
+          continue;
+        }
+
+        const optMatch = line.match(optionStartRegex);
+        if (optMatch) {
+          if (!currentQ) {
+            errors.push(`Dòng "${line.slice(0, 50)}": Xuất hiện phương án "${optMatch[2]}" trước khi bắt đầu câu hỏi đầu tiên (Thiếu dòng "Câu [số]:").`);
+            continue;
+          }
+
+          const isCorrect = optMatch[1] === '*';
+          const letter = optMatch[2].toUpperCase();
+          const optContent = optMatch[3] || '';
+
+          if (letter in currentQ.options) {
+            currentQ.duplicateKeys.push(letter);
+          }
+
+          currentQ.options[letter] = optContent;
+          if (isCorrect) {
+            currentQ.markedCorrectList.push(letter);
+          }
+          currentOptionKey = letter;
+          continue;
+        }
+
+        // Check if someone marked an invalid option letter like E. or *E.
+        if (/^(\*)?\s*[E-Ze-z]\s*[\.\)\:]\s+/.test(line) && currentQ) {
+          errors.push(`Câu ${currentQ.number}: Phát hiện phương án không hợp lệ ("${line.slice(0, 35)}..."). Hệ thống chỉ cho phép 4 phương án A, B, C, D.`);
+          continue;
+        }
+
+        // Multiline continuation handling
+        if (!currentQ) {
+          errors.push(`Không nhận diện được dòng bắt đầu câu hỏi tại dòng: "${line.slice(0, 60)}". Mỗi câu hỏi phải bắt đầu bằng cụm "Câu [số]:".`);
+        } else if (currentOptionKey === null) {
+          // Append multiline content to current question text
+          currentQ.text = currentQ.text ? `${currentQ.text}\n${line}` : line;
+        } else {
+          // Append multiline content to current option text
+          currentQ.options[currentOptionKey] = currentQ.options[currentOptionKey]
+            ? `${currentQ.options[currentOptionKey]}\n${line}`
+            : line;
+        }
+      }
+
+      if (currentQ) {
+        finalizeAndValidateQuestion(currentQ);
+      }
+
+      if (questions.length === 0 && errors.length === 0) {
+        errors.push('Không tìm thấy câu hỏi nào bắt đầu bằng cụm "Câu [số]:".');
+      }
+
+      return {
+        valid: errors.length === 0 && questions.length > 0,
+        errors,
+        questions
+      };
+    }
+
+    async function processUploadedDocxFile(file) {
+      if (!file.name.toLowerCase().endsWith('.docx')) {
+        showValidationErrors(file.name, [
+          `Tệp "${file.name}" không phải định dạng .docx. Vui lòng chọn tệp Microsoft Word (.docx).`
+        ]);
+        return;
+      }
+
+      try {
+        const rawLines = await extractLinesFromDocx(file);
+        const result = parseAndValidateQuizLines(rawLines);
+
+        if (!result.valid) {
+          closeImportAssistantModal();
+          showValidationErrors(file.name, result.errors);
+          return;
+        }
+
+        // Valid .docx -> Create new quiz set
+        const cleanQuizName = file.name.replace(/\.docx$/i, '').replace(/[_-]+/g, ' ').trim() || `Bộ đề ${appState.quizzes.length + 1}`;
+        createNewQuizSet(cleanQuizName, file.name, result.questions);
+        closeImportAssistantModal();
+      } catch (err) {
+        closeImportAssistantModal();
+        showValidationErrors(file.name, [
+          `Không thể đọc tệp Word (.docx): ${err.message || 'Tệp bị hỏng hoặc sai định dạng.'}`
+        ]);
+      }
+    }
+
+    function handleRawTextImport() {
+      const titleInput = document.getElementById('rawQuizTitleInput');
+      const contentInput = document.getElementById('rawQuizContentInput');
+      const rawText = contentInput ? contentInput.value : '';
+      const customTitle = titleInput && titleInput.value.trim()
+        ? titleInput.value.trim()
+        : `Bài ${appState.quizzes.length + 1} - Bộ đề nhập nhanh`;
+
+      const rawLines = rawText.split(/\r?\n/);
+      const result = parseAndValidateQuizLines(rawLines);
+
+      if (!result.valid) {
+        closeImportAssistantModal();
+        showValidationErrors(customTitle, result.errors);
+        return;
+      }
+
+      createNewQuizSet(customTitle, `${toSafeFileName(customTitle)}.docx`, result.questions);
+      if (titleInput) titleInput.value = '';
+      if (contentInput) contentInput.value = '';
+      closeImportAssistantModal();
+    }
+
+    function createNewQuizSet(quizName, sourceFileName, questions) {
+      const newQuiz = {
+        id: 'quiz_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        name: quizName,
+        fileName: sourceFileName,
+        createdAt: new Date().toLocaleDateString('vi-VN'),
+        questions
+      };
+
+      appState.quizzes.push(newQuiz);
+      appState.activeQuizId = newQuiz.id;
+      saveAppState();
+      renderAll();
+
+      // Scroll to top of new quiz
+      const container = document.getElementById('questionsScrollContainer');
+      if (container) container.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Section 3 & 6.2: Automatically generate & download standalone HTML file if enabled
+      if (appState.autoDownloadHtml) {
+        exportQuizStandaloneHTMLById(newQuiz.id, true);
+        showToast(
+          `Đã tạo bộ đề "${quizName}" (${questions.length} câu) và xuất tệp HTML độc lập!`,
+          'success'
+        );
+      } else {
+        showToast(
+          `Đã nhập thành công bộ đề "${quizName}" gồm ${questions.length} câu hỏi!`,
+          'success'
+        );
+      }
+    }
+
+    /*************************************************************************
+     * 6. SAMPLE .DOCX GENERATOR (FOR INSTANT USER TESTING)
+     *************************************************************************/
+    async function downloadSampleDocxFile(type = 'valid') {
+      try {
+        const zip = new JSZip();
+
+        const validParagraphs = [
+          'Câu 1: Trong mô hình mạng TCP/IP, giao thức nào chịu trách nhiệm phân giải tên miền thành địa chỉ IP?',
+          'A. DHCP',
+          '*B. DNS',
+          'C. FTP',
+          'D. SSH',
+          'Câu 2: Độ phức tạp thời gian của thuật toán sắp xếp nhanh (QuickSort) trong trường hợp trung bình là gì?',
+          '*A. O(n log n)',
+          'B. O(n)',
+          'C. O(log n)',
+          'D. O(1)',
+          'Câu 3: Ngôn ngữ nào được trình duyệt web biên dịch và thực thi trực tiếp để xử lý tương tác phía Client?',
+          'A. Python',
+          'B. C++',
+          '*C. JavaScript',
+          'D. PHP',
+          'Câu 4: Câu hỏi khảo sát (chưa thiết lập đáp án đúng - không có dấu *): Bạn thường làm đề trắc nghiệm trên thiết bị nào?',
+          'A. Máy tính xách tay (Laptop)',
+          'B. Máy tính để bàn (PC)',
+          'C. Máy tính bảng (Tablet)',
+          'D. Điện thoại thông minh (Smartphone)',
+          'Câu 5: Trong hệ quản trị cơ sở dữ liệu quan hệ, từ khóa nào dùng để kết hợp các hàng từ hai hay nhiều bảng dựa trên cột liên quan?',
+          'A. GROUP BY',
+          'B. ORDER BY',
+          'C. HAVING',
+          '*D. JOIN'
+        ];
+
+        const errorParagraphs = [
+          'Dòng văn bản lạ nằm trước câu hỏi số 1 không đúng định dạng',
+          'Câu 1: Câu hỏi này đánh dấu tới 2 đáp án đúng bằng dấu *:',
+          '*A. Phương án A được đánh dấu sao',
+          '*B. Phương án B cũng được đánh dấu sao',
+          'C. Phương án C',
+          'D. Phương án D',
+          'Câu 2: Câu hỏi này bị thiếu phương án D:',
+          'A. Phương án A',
+          '*B. Phương án B',
+          'C. Phương án C'
+        ];
+
+        const linesToWrite = type === 'valid' ? validParagraphs : errorParagraphs;
+
+        const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+
+        const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+        const bodyParagraphsXml = linesToWrite.map(line => {
+          const escaped = line
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+          return `<w:p><w:r><w:t xml:space="preserve">${escaped}</w:t></w:r></w:p>`;
+        }).join('');
+
+        const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>${bodyParagraphsXml}</w:body>
+</w:document>`;
+
+        zip.file('[Content_Types].xml', contentTypesXml);
+        zip.folder('_rels').file('.rels', relsXml);
+        zip.folder('word').file('document.xml', documentXml);
+
+        const blob = await zip.generateAsync({
+          type: 'blob',
+          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        });
+
+        const fileName = type === 'valid' ? 'Bai_3_De_Thi_Mau_Chuan.docx' : 'De_Thi_Mau_Loi_Dinh_Dang.docx';
+        triggerBlobDownload(blob, fileName);
+        showToast(`Đã tải xuống tệp "${fileName}". Hãy chọn tệp này để kiểm thử tính năng nhập Word!`, 'info');
+      } catch (e) {
+        showToast('Không thể tạo tệp .docx mẫu: ' + e.message, 'error');
+      }
+    }
+
+    function fillSampleRawText() {
+      document.getElementById('rawQuizTitleInput').value = 'Bài 3 - Kiểm tra Kiến trúc Máy tính & Hệ điều hành';
+      document.getElementById('rawQuizContentInput').value = `Câu 1: Thành phần nào trong CPU thực hiện các phép toán số học và logic?
+*A. ALU (Arithmetic Logic Unit)
+B. CU (Control Unit)
+C. Thanh ghi (Register)
+D. Bộ nhớ đệm (Cache)
+
+Câu 2: Bộ nhớ nào sau đây là bộ nhớ khả biến (mất dữ liệu khi ngừng cung cấp điện)?
+A. ROM
+*B. RAM
+C. Ổ cứng SSD
+D. Thẻ nhớ Flash
+
+Câu 3: Câu hỏi thảo luận chưa thiết lập đáp án đúng (không có dấu *): Hệ điều hành nào bạn yêu thích nhất khi lập trình?
+A. Windows 11
+B. Ubuntu / Linux
+C. macOS
+D. Fedora / Arch Linux`;
+    }
+
+    /*************************************************************************
+     * 7. STANDALONE SELF-CONTAINED HTML GENERATOR (SECTION 6.2)
+     * Generates a 100% offline-capable .html file with NO external dependencies
+     *************************************************************************/
+    function exportActiveQuizStandaloneHTML() {
+      const quiz = getActiveQuiz();
+      if (!quiz) return;
+      exportQuizStandaloneHTMLById(quiz.id, false);
+    }
+
+    function exportQuizStandaloneHTMLById(quizId, isAutoTriggered = false) {
+      const quiz = appState.quizzes.find(q => q.id === quizId);
+      if (!quiz) return;
+
+      // Clone questions with userAnswer reset to null so recipients get a fresh quiz
+      const cleanQuizPayload = {
+        name: quiz.name,
+        exportedAt: new Date().toLocaleString('vi-VN'),
+        questions: quiz.questions.map(q => ({
+          number: q.number,
+          text: q.text,
+          options: { ...q.options },
+          correctAnswer: q.correctAnswer,
+          userAnswer: null
+        }))
+      };
+
+      const safeFileName = toSafeFileName(quiz.name) + '.html';
+      const standaloneHtmlString = buildStandaloneHTMLDocument(cleanQuizPayload);
+      const blob = new Blob([standaloneHtmlString], { type: 'text/html;charset=utf-8' });
+      triggerBlobDownload(blob, safeFileName);
+
+      if (!isAutoTriggered) {
+        showToast(`Đã xuất tệp độc lập "${safeFileName}" (chạy offline không cần Internet).`, 'success');
+      }
+    }
+
+    function buildStandaloneHTMLDocument(quizData) {
+      // Safely serialize JSON for embedding inside <script>
+      const serializedJson = JSON.stringify(quizData).replace(/<\//g, '<\\/');
+
+      return `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapeHtml(quizData.name)} — Quiz Master (Bản Độc Lập Offline)</title>
+  <style>
+    :root {
+      --blue-600: #2563eb;
+      --blue-500: #3b82f6;
+      --blue-50: #eff6ff;
+      --slate-950: #020617;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-500: #64748b;
+      --slate-400: #94a3b8;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --green-600: #16a34a;
+      --green-50: #f0fdf4;
+      --red-600: #dc2626;
+      --red-50: #fef2f2;
+      --amber-600: #d97706;
+      --amber-50: #fffbeb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--slate-50);
+      color: var(--slate-900);
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+    }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+    /* Sidebar */
+    .sidebar {
+      width: 300px;
+      background: var(--slate-900);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      border-right: 1px solid var(--slate-800);
+      transition: width 0.25s ease, transform 0.25s ease;
+      flex-shrink: 0;
+      z-index: 30;
+    }
+    .sidebar.collapsed { width: 78px; }
+    .sidebar.collapsed .hide-when-collapsed { display: none !important; }
+    .sidebar-top {
+      padding: 16px;
+      border-bottom: 1px solid var(--slate-800);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; overflow: hidden; }
+    .brand-logo {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--blue-600); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 16px; flex-shrink: 0;
+    }
+    .icon-btn {
+      width: 34px; height: 34px; border-radius: 8px;
+      color: var(--slate-400); display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.05);
+    }
+    .icon-btn:hover { background: var(--slate-800); color: #fff; }
+    .sidebar-info {
+      padding: 16px;
+      flex: 1;
+      overflow-y: auto;
+      border-bottom: 1px solid var(--slate-800);
+    }
+    .quiz-active-card {
+      background: var(--blue-600);
+      padding: 12px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    /* Bottom Fixed Navigator */
+    .navigator-box {
+      padding: 14px;
+      background: var(--slate-950);
+      display: flex;
+      flex-direction: column;
+      max-height: 48%;
+      flex-shrink: 0;
+    }
+    .nav-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--slate-400);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      font-size: 10px;
+      color: var(--slate-400);
+      background: var(--slate-900);
+      padding: 6px 8px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .sidebar.collapsed .nav-grid { grid-template-columns: repeat(2, 1fr); }
+    .nav-cell {
+      height: 32px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      color: var(--slate-900);
+      border: 1px solid #cbd5e1;
+      transition: transform 0.1s;
+    }
+    .nav-cell:hover { transform: translateY(-1px); }
+    .nav-cell.correct { background: var(--green-600); color: #fff; border-color: var(--green-600); }
+    .nav-cell.wrong { background: var(--red-600); color: #fff; border-color: var(--red-600); }
+    .nav-cell.ungraded-selected { outline: 2px solid var(--blue-500); }
+
+    /* Main Content */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-width: 0;
+    }
+    .header {
+      background: #fff;
+      border-bottom: 1px solid var(--slate-200);
+      padding: 14px 24px;
+      flex-shrink: 0;
+    }
+    .header-inner { max-width: 960px; margin: 0 auto; }
+    .header-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--slate-100);
+    }
+    .quiz-title { font-size: 19px; font-weight: 800; color: var(--slate-900); }
+    .quiz-sub { font-size: 12px; color: var(--slate-500); margin-top: 2px; }
+    .btn-reset {
+      background: var(--blue-600);
+      color: #fff;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 9px 16px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-reset:hover { background: var(--blue-500); }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      padding-top: 12px;
+    }
+    .stat-card {
+      background: var(--slate-50);
+      border: 1px solid var(--slate-200);
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+    .stat-label { font-size: 11px; color: var(--slate-500); font-weight: 500; }
+    .stat-val { font-size: 17px; font-weight: 800; margin-top: 2px; }
+    .questions-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+    .questions-container {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding-bottom: 60px;
+    }
+    .q-card {
+      background: #fff;
+      border: 1px solid var(--slate-200);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .q-card.correct-card { border-color: #86efac; }
+    .q-card.wrong-card { border-color: #fca5a5; }
+    .q-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+    .q-badge {
+      background: var(--blue-600);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 5px 12px;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+    .q-card.correct-card .q-badge { background: var(--green-600); }
+    .q-card.wrong-card .q-badge { background: var(--red-600); }
+    .q-text { font-size: 16px; font-weight: 600; line-height: 1.55; white-space: pre-line; word-break: break-word; }
+    .options-list { display: flex; flex-direction: column; gap: 10px; }
+    .opt-card {
+      border: 1px solid var(--slate-200);
+      border-radius: 12px;
+      padding: 13px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      background: #fff;
+    }
+    .opt-card:hover { border-color: var(--blue-500); background: var(--blue-50); }
+    .opt-letter {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: var(--slate-100); color: var(--slate-700);
+      font-weight: 700; font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .opt-text { flex: 1; font-size: 15px; line-height: 1.5; white-space: pre-line; word-break: break-word; padding-top: 3px; }
+    .opt-card.selected-correct { background: var(--green-50); border-color: var(--green-600); font-weight: 600; }
+    .opt-card.selected-correct .opt-letter { background: var(--green-600); color: #fff; }
+    .opt-card.selected-wrong { background: var(--red-50); border-color: var(--red-600); font-weight: 600; }
+    .opt-card.selected-wrong .opt-letter { background: var(--red-600); color: #fff; }
+    .opt-card.reveal-correct { background: var(--green-50); border: 1px dashed var(--green-600); }
+    .opt-card.reveal-correct .opt-letter { background: var(--green-600); color: #fff; }
+    .opt-card.selected-neutral { background: var(--blue-50); border-color: var(--blue-600); font-weight: 600; }
+    .opt-card.selected-neutral .opt-letter { background: var(--blue-600); color: #fff; }
+    .feedback {
+      margin-top: 14px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .feedback.ok { background: var(--green-50); color: #166534; border: 1px solid #bbf7d0; }
+    .feedback.err { background: var(--red-50); color: #991b1b; border: 1px solid #fecaca; }
+    .feedback.warn { background: var(--amber-50); color: #92400e; border: 1px solid #fde68a; }
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(3, 1fr); }
+      .sidebar { position: fixed; bottom: 0; top: 0; left: 0; transform: translateX(-100%); }
+      .sidebar.mobile-open { transform: translateX(0); }
+      .mobile-toggle { display: inline-flex !important; }
+    }
+  </style>
+</head>
+<body>
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-top">
+      <div class="brand">
+        <div class="brand-logo">QM</div>
+        <div class="hide-when-collapsed">
+          <div style="font-weight:700;font-size:15px;">Quiz Master</div>
+          <div style="font-size:11px;color:#94a3b8;">Bản HTML Độc Lập Offline</div>
+        </div>
+      </div>
+      <button class="icon-btn" onclick="toggleSidebar()" title="Thu gọn / Mở rộng">⇄</button>
+    </div>
+
+    <div class="sidebar-info">
+      <div class="hide-when-collapsed" style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:8px;">BỘ ĐỀ HIỆN TẠI</div>
+      <div class="quiz-active-card">
+        <span class="hide-when-collapsed" id="sidebarQuizName"></span>
+        <span id="sidebarCompactBadge" style="display:none;text-align:center;display:block;font-size:12px;">Đề 1</span>
+      </div>
+    </div>
+
+    <div class="navigator-box">
+      <div class="nav-title">
+        <span class="hide-when-collapsed">ĐIỀU HƯỚNG CÂU HỎI</span>
+        <span id="navProgress">0/0</span>
+      </div>
+      <div class="legend hide-when-collapsed">
+        <div class="legend-item"><span class="dot" style="background:#fff;border:1px solid #cbd5e1;"></span><span>Chưa/K.ĐA</span></div>
+        <div class="legend-item"><span class="dot" style="background:#16a34a;"></span><span>Đúng</span></div>
+        <div class="legend-item"><span class="dot" style="background:#dc2626;"></span><span>Sai</span></div>
+      </div>
+      <div id="navGrid" class="nav-grid"></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="header">
+      <div class="header-inner">
+        <div class="header-top">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('mobile-open')" style="display:none;padding:8px 10px;background:#f1f5f9;border-radius:8px;font-weight:700;">☰</button>
+            <div>
+              <h1 id="mainTitle" class="quiz-title"></h1>
+              <p id="mainMeta" class="quiz-sub"></p>
+            </div>
+          </div>
+          <button class="btn-reset" onclick="resetQuiz()">↻ Làm lại bộ đề</button>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Tổng số câu</div><div id="stTotal" class="stat-val">0</div></div>
+          <div class="stat-card"><div class="stat-label">Đã trả lời</div><div id="stAnswered" class="stat-val" style="color:#2563eb;">0</div></div>
+          <div class="stat-card"><div class="stat-label">Số câu đúng</div><div id="stCorrect" class="stat-val" style="color:#16a34a;">0</div></div>
+          <div class="stat-card"><div class="stat-label">Số câu sai</div><div id="stWrong" class="stat-val" style="color:#dc2626;">0</div></div>
+          <div class="stat-card"><div class="stat-label">Chưa trả lời</div><div id="stUnanswered" class="stat-val">0</div></div>
+          <div class="stat-card"><div class="stat-label">Tỷ lệ chính xác</div><div id="stAccuracy" class="stat-val" style="color:#4338ca;">0%</div></div>
+        </div>
+      </div>
+    </header>
+
+    <main class="questions-scroll">
+      <div id="questionsContainer" class="questions-container"></div>
+    </main>
+  </div>
+
+  <script>
+    const QUIZ = ${serializedJson};
+
+    function esc(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function toggleSidebar() {
+      const sb = document.getElementById('sidebar');
+      sb.classList.toggle('collapsed');
+      sb.classList.remove('mobile-open');
+    }
+
+    function selectAnswer(idx, letter) {
+      QUIZ.questions[idx].userAnswer = letter;
+      renderAll();
+    }
+
+    function resetQuiz() {
+      QUIZ.questions.forEach(q => q.userAnswer = null);
+      renderAll();
+      document.querySelector('.questions-scroll').scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function scrollToQ(idx) {
+      const el = document.getElementById('q-card-' + idx);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('sidebar').classList.remove('mobile-open');
+    }
+
+    function renderAll() {
+      document.getElementById('sidebarQuizName').textContent = QUIZ.name;
+      document.getElementById('mainTitle').textContent = QUIZ.name;
+
+      const total = QUIZ.questions.length;
+      let answered = 0, correct = 0, wrong = 0, gradable = 0;
+
+      QUIZ.questions.forEach(q => {
+        const hasKey = ['A','B','C','D'].includes(q.correctAnswer);
+        if (hasKey) gradable++;
+        if (q.userAnswer) {
+          answered++;
+          if (hasKey) {
+            if (q.userAnswer === q.correctAnswer) correct++;
+            else wrong++;
+          }
+        }
+      });
+
+      const accuracy = gradable > 0 ? Math.round((correct / gradable) * 100) : 0;
+      document.getElementById('mainMeta').textContent = total + ' câu hỏi • Chạy độc lập không cần Internet • Xuất lúc: ' + QUIZ.exportedAt;
+      document.getElementById('stTotal').textContent = total;
+      document.getElementById('stAnswered').textContent = answered;
+      document.getElementById('stCorrect').textContent = correct;
+      document.getElementById('stWrong').textContent = wrong;
+      document.getElementById('stUnanswered').textContent = total - answered;
+      document.getElementById('stAccuracy').textContent = accuracy + '%';
+      document.getElementById('navProgress').textContent = answered + '/' + total;
+
+      // Render Navigator
+      document.getElementById('navGrid').innerHTML = QUIZ.questions.map((q, i) => {
+        const hasKey = ['A','B','C','D'].includes(q.correctAnswer);
+        let cls = 'nav-cell';
+        if (q.userAnswer) {
+          if (!hasKey) cls += ' ungraded-selected';
+          else if (q.userAnswer === q.correctAnswer) cls += ' correct';
+          else cls += ' wrong';
+        }
+        return '<button class="' + cls + '" onclick="scrollToQ(' + i + ')">' + q.number + '</button>';
+      }).join('');
+
+      // Render Questions
+      document.getElementById('questionsContainer').innerHTML = QUIZ.questions.map((q, i) => {
+        const hasKey = ['A','B','C','D'].includes(q.correctAnswer);
+        const isAns = q.userAnswer !== null;
+        const isOk = hasKey && isAns && q.userAnswer === q.correctAnswer;
+        const isErr = hasKey && isAns && q.userAnswer !== q.correctAnswer;
+
+        let cardCls = 'q-card';
+        if (isOk) cardCls += ' correct-card';
+        if (isErr) cardCls += ' wrong-card';
+
+        const optsHtml = ['A','B','C','D'].map(letter => {
+          let oCls = 'opt-card';
+          if (isAns) {
+            if (!hasKey && q.userAnswer === letter) oCls += ' selected-neutral';
+            else if (hasKey) {
+              if (q.userAnswer === letter && isOk) oCls += ' selected-correct';
+              else if (q.userAnswer === letter && isErr) oCls += ' selected-wrong';
+              else if (isErr && q.correctAnswer === letter) oCls += ' reveal-correct';
+            }
+          }
+          return '<div class="' + oCls + '" onclick="selectAnswer(' + i + ', \\'' + letter + '\\')">' +
+            '<span class="opt-letter">' + letter + '</span>' +
+            '<div class="opt-text">' + esc(q.options[letter]) + '</div>' +
+          '</div>';
+        }).join('');
+
+        let fbHtml = '';
+        if (isAns) {
+          if (!hasKey) {
+            fbHtml = '<div class="feedback warn"><span>Câu hỏi chưa được thiết lập đáp án đúng</span></div>';
+          } else if (isOk) {
+            fbHtml = '<div class="feedback ok"><span>✓ Chính xác!</span><span>Đáp án đúng: ' + q.correctAnswer + '</span></div>';
+          } else {
+            fbHtml = '<div class="feedback err"><span>✕ Chưa chính xác!</span><span>Đáp án đúng là: ' + q.correctAnswer + '. ' + esc(q.options[q.correctAnswer]) + '</span></div>';
+          }
+        } else if (!hasKey) {
+          fbHtml = '<div class="feedback warn" style="opacity:0.85;"><span>Câu hỏi chưa được thiết lập đáp án đúng</span></div>';
+        }
+
+        return '<article id="q-card-' + i + '" class="' + cardCls + '">' +
+          '<div class="q-head">' +
+            '<span class="q-badge">Câu ' + q.number + '</span>' +
+            '<div class="q-text">' + esc(q.text) + '</div>' +
+          '</div>' +
+          '<div class="options-list">' + optsHtml + '</div>' +
+          fbHtml +
+        '</article>';
+      }).join('');
+    }
+
+    renderAll();
+  <\/script>
+</body>
+</html>`;
+    }
+
+    /*************************************************************************
+     * 8. MODALS, HELPERS & TOAST UTILITIES
+     *************************************************************************/
+    function openImportAssistantModal() {
+      const m = document.getElementById('importModal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function closeImportAssistantModal() {
+      const m = document.getElementById('importModal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function showValidationErrors(fileName, errorList) {
+      const modal = document.getElementById('validationErrorModal');
+      const fileLabel = document.getElementById('errorModalFileName');
+      const listEl = document.getElementById('validationErrorList');
+
+      fileLabel.textContent = `Tệp kiểm tra: ${fileName} (${errorList.length} lỗi cần khắc phục)`;
+      listEl.innerHTML = errorList.map((err, idx) => `
+        <li class="flex items-start gap-2.5 bg-slate-50 border border-slate-200 rounded-xl p-3">
+          <span class="w-5 h-5 rounded-full bg-red-100 text-red-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">${idx + 1}</span>
+          <span class="leading-relaxed">${escapeHtml(err)}</span>
+        </li>
+      `).join('');
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function closeValidationErrorModal() {
+      const modal = document.getElementById('validationErrorModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function openDialogModal({ title, bodyHTML, actionsHTML }) {
+      document.getElementById('dialogTitle').textContent = title;
+      document.getElementById('dialogBody').innerHTML = bodyHTML;
+      document.getElementById('dialogActions').innerHTML = actionsHTML;
+      const modal = document.getElementById('dialogModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeDialogModal() {
+      const modal = document.getElementById('dialogModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+
+      let bgClass = 'bg-slate-900 border-slate-700 text-white';
+      let iconName = 'info';
+      if (type === 'success') {
+        bgClass = 'bg-emerald-700 border-emerald-500 text-white';
+        iconName = 'check-circle-2';
+      } else if (type === 'error') {
+        bgClass = 'bg-red-700 border-red-500 text-white';
+        iconName = 'alert-triangle';
+      }
+
+      toast.className = `pointer-events-auto flex items-start gap-2.5 px-4 py-3 rounded-xl border shadow-xl text-xs sm:text-sm font-medium transition-all duration-300 ${bgClass}`;
+      toast.innerHTML = `
+        <i data-lucide="${iconName}" class="w-4 h-4 shrink-0 mt-0.5"></i>
+        <span class="leading-snug">${escapeHtml(message)}</span>
+      `;
+
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 4200);
+    }
+
+    function triggerBlobDownload(blob, fileName) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 200);
+    }
+
+    function toSafeFileName(name) {
+      return String(name || 'Bo_De')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .replace(/[^a-zA-Z0-9_-]+/g, '_')
+        .replace(/^_+|_+$/g, '') || 'Bo_De';
+    }
+
+    function escapeHtml(str) {
+      return String(str === null || str === undefined ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Initialize application on window load
+    window.onload = function () {
+      loadAppState();
+      renderAll();
+    };
+  </script>
+</body>
+</html>
